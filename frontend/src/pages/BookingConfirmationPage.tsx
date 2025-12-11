@@ -1,3 +1,4 @@
+import React from 'react';
 import { CheckCircle, Calendar, MapPin, Mail, Phone, Download, Home } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';

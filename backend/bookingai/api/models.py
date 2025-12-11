@@ -20,7 +20,7 @@ class Property(models.Model):
     amenities = models.TextField(blank=True, null=True)
 
     # AI evaluation
-    ai_verified_score = models.FloatField(default=0.0)
+    ai_verified_score = models.TextField(default="No evaluation yet")
 
     def __str__(self):
         return f"{self.name} ({self.location})"
@@ -141,7 +141,6 @@ class Review(models.Model):
 
     # AI feedback ("Did AI choose the right room?")
     ai_accuracy_feedback = models.TextField(blank=True, null=True)
-
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

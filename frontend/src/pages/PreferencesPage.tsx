@@ -1,3 +1,4 @@
+import React from 'react';
 import { Settings, Sparkles, Save } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../components/ui/button';

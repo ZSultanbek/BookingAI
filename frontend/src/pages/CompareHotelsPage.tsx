@@ -1,3 +1,4 @@
+import React from 'react';
 import { ChevronLeft, Star, MapPin, Check, X, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';

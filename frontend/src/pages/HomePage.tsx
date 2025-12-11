@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import { Search, MapPin, Calendar, Users, Sparkles, TrendingUp } from 'lucide-react';
 import { Button } from '../components/ui/button';

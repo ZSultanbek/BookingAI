@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import { Star, MapPin, Heart, Share2, Wifi, Utensils, Dumbbell, Car, Sparkles, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';

@@ -1,3 +1,4 @@
+import React from 'react';
 import { ChevronLeft, Calendar, Users, CreditCard, Shield } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';

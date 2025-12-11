@@ -1,3 +1,4 @@
+import React from 'react';
 import { Heart, Grid, List, ArrowUpDown } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../components/ui/button';

@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Sparkles, User, Bot } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { callGemini } from '../lib/api';
 
 interface AIChatPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -68,7 +69,7 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
     const userMessage: Message = {
@@ -78,21 +79,34 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
       timestamp: new Date()
     };
 
+    const userInput = inputValue;
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response delay
-    setTimeout(() => {
+    try {
+      // Call real Gemini API through backend
+      const aiText = await callGemini(userInput);
+      
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: getAIResponse(inputValue),
+        content: aiText,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      // Fallback to mock response if API fails
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. ${getAIResponse(userInput)}`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, aiResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1000 + Math.random() * 1000);
+    }
   };
 
   const handleSuggestedQuestion = (question: string) => {
@@ -253,7 +267,7 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
             </Button>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            AI responses are simulated for demonstration purposes
+            Powered by Gemini AI
           </p>
         </div>
       </div>
