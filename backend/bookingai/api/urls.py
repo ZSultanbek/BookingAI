@@ -1,9 +1,15 @@
 from django.urls import path
 
-from .views import gemini_generate, health_check
+from .views import (
+    health_check,
+    ai_chat,
+    ai_sort_rooms,
+)
 
 urlpatterns = [
     path("health/", health_check, name="health_check"),
-    path("gemini/generate/", gemini_generate, name="gemini_generate"),
-]
 
+    # AI endpoints
+    path("ai/chat/", ai_chat, name="ai_chat"),
+    path("ai/sort-rooms/", ai_sort_rooms, name="ai_sort_rooms"),
+]

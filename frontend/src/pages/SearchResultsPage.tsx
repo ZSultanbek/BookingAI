@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SlidersHorizontal, Sparkles, Grid, List, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { HotelCard } from '../components/HotelCard';
@@ -8,6 +8,8 @@ import { Checkbox } from '../components/ui/checkbox';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../components/ui/sheet';
+import { aiSortRooms } from "../lib/api";
+
 
 interface SearchResultsPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -24,26 +26,67 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
 
   const amenitiesList = ['Free WiFi', 'Pool', 'Spa', 'Restaurant', 'Gym', 'Parking', 'Bar', 'Beach Access'];
 
-  const filteredHotels = mockHotels
-    .filter(hotel => hotel.price >= priceRange[0] && hotel.price <= priceRange[1])
-    .filter(hotel => 
-      selectedAmenities.length === 0 || 
-      selectedAmenities.every(amenity => hotel.amenities.includes(amenity))
-    )
-    .sort((a, b) => {
+  const preferences = {
+  travel_reason: searchData?.travel_reason || "leisure",
+  preferred_amenities: selectedAmenities,
+  room_type: searchData?.room_type,
+  };
+  const [aiSortedIds, setAiSortedIds] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    if (sortBy !== "ai-score") {
+      setAiSortedIds(null);
+      return;
+    }
+
+    async function sortWithAI() {
+      try {
+        const ids = await aiSortRooms({
+          preferences,
+          rooms: mockHotels.map(h => ({
+            id: h.id,
+            price: h.price,
+            rating: h.rating,
+            amenities: h.amenities,
+          })),
+        });
+        setAiSortedIds(ids);
+      } catch (e) {
+        console.error("AI sorting failed", e);
+        setAiSortedIds(null);
+      }
+    }
+
+    sortWithAI();
+  }, [sortBy, selectedAmenities]);
+
+  const filteredHotelsBase = mockHotels
+  .filter(hotel => hotel.price >= priceRange[0] && hotel.price <= priceRange[1])
+  .filter(hotel =>
+    selectedAmenities.length === 0 ||
+    selectedAmenities.every(a => hotel.amenities.includes(a))
+  );
+
+  const filteredHotels = (() => {
+    if (sortBy === "ai-score" && aiSortedIds) {
+      return aiSortedIds
+        .map(id => filteredHotelsBase.find(h => h.id === id))
+        .filter((h): h is (typeof mockHotels)[number] => h !== undefined);
+    }
+
+    return [...filteredHotelsBase].sort((a, b) => {
       switch (sortBy) {
-        case 'ai-score':
-          return b.aiScore - a.aiScore;
-        case 'price-low':
+        case "price-low":
           return a.price - b.price;
-        case 'price-high':
+        case "price-high":
           return b.price - a.price;
-        case 'rating':
+        case "rating":
           return b.rating - a.rating;
         default:
           return 0;
       }
     });
+  })();
 
   const toggleAmenity = (amenity: string) => {
     setSelectedAmenities(prev =>
@@ -102,6 +145,7 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
     </div>
   );
 
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200">

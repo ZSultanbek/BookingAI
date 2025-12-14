@@ -4,7 +4,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { callGemini } from '../lib/api';
+import { aiChat } from '../lib/api';
+import { mockHotels } from "../data/mockData";
 
 interface AIChatPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -69,6 +70,11 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
     }
   };
 
+  const preferences = {
+  travel_reason: "leisure",
+  preferred_amenities: ["Free WiFi", "Pool"],
+  room_type: "Suite",
+  };  
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
@@ -86,7 +92,11 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
 
     try {
       // Call real Gemini API through backend
-      const aiText = await callGemini(userInput);
+      const aiText = await aiChat({
+        message: userInput,
+        preferences,
+        hotels: mockHotels
+      });
       
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),

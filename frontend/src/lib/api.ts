@@ -1,23 +1,9 @@
-/**
- * API client for backend communication (Gemini only)
- */
-
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-export interface GeminiResponse {
-  candidates?: Array<{
-    content: {
-      parts: Array<{
-        text: string;
-      }>;
-    };
-  }>;
-  error?: {
-    message: string;
-    code: number;
-  };
-}
+/* =========================
+   Types
+========================= */
 
 export interface HealthCheckResponse {
   status: string;
@@ -25,54 +11,75 @@ export interface HealthCheckResponse {
   service: string;
 }
 
-/**
- * Check if backend is accessible
- */
-export async function checkBackendHealth(): Promise<HealthCheckResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/health/`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+export interface AIChatRequest {
+  message: string;
+  preferences: Record<string, any>;
+  hotels: any[];
+}
 
+export interface AISortRoomsRequest {
+  preferences: Record<string, any>;
+  rooms: any[];
+}
+
+/* =========================
+   Health check
+========================= */
+
+export async function checkBackendHealth(): Promise<HealthCheckResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/health/`);
   if (!response.ok) {
     throw new Error(`Health check failed: ${response.status}`);
   }
-
   return response.json();
 }
 
-/**
- * Call Gemini API through backend proxy
- */
-export async function callGemini(prompt: string): Promise<string> {
+/* =========================
+   AI Chat
+========================= */
+
+export async function aiChat(
+  payload: AIChatRequest
+): Promise<string> {
   const response = await fetch(
-    `${API_BASE_URL}/api/gemini/generate/`,
+    `${API_BASE_URL}/api/ai/chat/`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     }
   );
 
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `HTTP error ${response.status}`);
+    throw new Error(await response.text());
   }
 
-  const data: GeminiResponse = await response.json();
+  const data = await response.json();
 
-  const text =
-    data.candidates?.[0]?.content?.parts
-      ?.map((p) => p.text)
-      .join("") ?? "";
+  return data.response ?? "";
+}
 
-  if (!text) {
-    throw new Error("Empty response from Gemini");
+
+/* =========================
+   AI Sort Rooms
+========================= */
+
+export async function aiSortRooms(
+  payload: AISortRoomsRequest
+): Promise<string[]> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/ai/sort-rooms/`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await response.text());
   }
 
-  return text;
+  const data = await response.json();
+  return data.sorted_room_ids;
 }
