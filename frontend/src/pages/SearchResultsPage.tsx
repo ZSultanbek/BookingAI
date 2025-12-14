@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SlidersHorizontal, Sparkles, Grid, List } from 'lucide-react';
+import { SlidersHorizontal, Sparkles, Grid, List, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { HotelCard } from '../components/HotelCard';
 import { mockHotels } from '../data/mockData';

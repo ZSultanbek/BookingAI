@@ -1,3 +1,4 @@
+import React from 'react';
 import { Hotel } from '../types';
 import { Star, MapPin, Heart, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';

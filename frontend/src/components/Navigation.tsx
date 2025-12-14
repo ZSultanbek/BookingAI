@@ -1,3 +1,4 @@
+import React from 'react';
 import { Home, Search, Heart, Compass, Settings, MessageSquare, Map } from 'lucide-react';
 import { Button } from './ui/button';
 
