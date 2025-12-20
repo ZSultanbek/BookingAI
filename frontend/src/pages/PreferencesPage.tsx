@@ -29,17 +29,39 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
   ]);
   const [travelPurpose, setTravelPurpose] = useState("leisure");
   const [preferredLocation, setPreferredLocation] = useState("city-center");
+  const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([
+    "King Bed",
+  ]);
+  const [preferenceText, setPreferenceText] = useState("");
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Check authentication on mount
+  // Check authentication on mount and load preferences
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { authenticated } = await getCurrentUser();
-        if (!authenticated) {
+        const response = await getCurrentUser();
+        if (!response.authenticated) {
           toast.error("Please log in to access preferences");
           window.location.href = "http://localhost:8000/accounts/login/";
           return;
+        }
+
+        // Load saved preferences if available
+        if (response.preferences) {
+          const prefs = response.preferences;
+          if (prefs.priceRange) setPriceRange(prefs.priceRange);
+          if (prefs.selectedAmenities)
+            setSelectedAmenities(prefs.selectedAmenities);
+          if (prefs.travelPurpose) setTravelPurpose(prefs.travelPurpose);
+          if (prefs.preferredLocation)
+            setPreferredLocation(prefs.preferredLocation);
+          if (prefs.selectedRoomTypes)
+            setSelectedRoomTypes(prefs.selectedRoomTypes);
+        }
+
+        // Load preference text description if available
+        if (response.travel_reason) {
+          setPreferenceText(response.travel_reason);
         }
       } catch (err) {
         toast.error("Please log in to access preferences");
@@ -74,6 +96,14 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
     );
   };
 
+  const toggleRoomType = (roomType: string) => {
+    setSelectedRoomTypes((prev) =>
+      prev.includes(roomType)
+        ? prev.filter((r) => r !== roomType)
+        : [...prev, roomType]
+    );
+  };
+
   const handleSavePreferences = async () => {
     try {
       const preferences = {
@@ -81,13 +111,20 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
         selectedAmenities,
         travelPurpose,
         preferredLocation,
+        selectedRoomTypes,
       };
 
-      await savePreferences(preferences);
+      const response = await savePreferences(preferences);
 
       toast.success(
         "Preferences saved successfully! AI recommendations will be updated."
       );
+
+      // Update preference text if returned from backend
+      if (response && response.text) {
+        setPreferenceText(response.text);
+      }
+
       setTimeout(() => {
         onNavigate("ai-recommendations");
       }, 1500);
@@ -154,6 +191,16 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
             </div>
           </div>
         </Card>
+
+        {/* Current Preference Summary */}
+        {preferenceText && (
+          <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Your Preference Summary
+            </h3>
+            <p className="text-gray-700">{preferenceText}</p>
+          </Card>
+        )}
 
         <div className="space-y-8">
           {/* Price Range */}
@@ -300,7 +347,11 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   key={roomType}
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50"
                 >
-                  <Checkbox id={roomType} />
+                  <Checkbox
+                    id={roomType}
+                    checked={selectedRoomTypes.includes(roomType)}
+                    onCheckedChange={() => toggleRoomType(roomType)}
+                  />
                   <Label htmlFor={roomType} className="cursor-pointer">
                     {roomType}
                   </Label>

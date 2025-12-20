@@ -7,6 +7,60 @@ from django.http import JsonResponse
 from django.conf import settings
 import json
 
+
+def generate_preference_text(preferences_data):
+    """Generate a text description of user preferences from structured data."""
+    if isinstance(preferences_data, str):
+        try:
+            preferences_data = json.loads(preferences_data)
+        except (json.JSONDecodeError, TypeError):
+            return ""
+    
+    if not isinstance(preferences_data, dict):
+        return ""
+    
+    text_parts = []
+    
+    # Price range
+    price_range = preferences_data.get("priceRange", [])
+    if price_range and len(price_range) >= 2:
+        text_parts.append(f"Budget: ${price_range[0]}-${price_range[1]} per night")
+    
+    # Selected amenities
+    amenities = preferences_data.get("selectedAmenities", [])
+    if amenities:
+        text_parts.append(f"Preferred amenities: {', '.join(amenities)}")
+    
+    # Room types
+    room_types = preferences_data.get("selectedRoomTypes", [])
+    if room_types:
+        text_parts.append(f"Preferred room types: {', '.join(room_types)}")
+    
+    # Travel purpose
+    travel_purpose = preferences_data.get("travelPurpose", "")
+    if travel_purpose:
+        purpose_map = {
+            "leisure": "Leisure travel",
+            "business": "Business travel",
+            "family": "Family trip",
+            "adventure": "Adventure travel"
+        }
+        text_parts.append(f"Travel purpose: {purpose_map.get(travel_purpose, travel_purpose)}")
+    
+    # Preferred location
+    location = preferences_data.get("preferredLocation", "")
+    if location:
+        location_map = {
+            "city-center": "City center location preferred",
+            "beach": "Beach/coastal area preferred",
+            "mountains": "Mountain/nature area preferred",
+            "suburbs": "Suburban area preferred"
+        }
+        text_parts.append(f"{location_map.get(location, location)}")
+    
+    return " | ".join(text_parts)
+
+
 # Create your views here.
 def register_view(request):
     if request.method == 'POST':
@@ -179,6 +233,29 @@ def api_logout(request):
 def api_me(request):
     """Get current authenticated user info."""
     if request.user.is_authenticated:
+        # Get profile preferences
+        preferences = None
+        travel_reason = None
+        
+        if hasattr(request.user, "guest_profile"):
+            profile = request.user.guest_profile
+            preferences = profile.preferences
+            travel_reason = profile.travel_reason
+        elif hasattr(request.user, "host_profile"):
+            profile = request.user.host_profile
+            if hasattr(profile, "preferences"):
+                preferences = profile.preferences
+            if hasattr(profile, "travel_reason"):
+                travel_reason = profile.travel_reason
+        
+        # Parse preferences JSON if available
+        parsed_preferences = None
+        if preferences:
+            try:
+                parsed_preferences = json.loads(preferences)
+            except (json.JSONDecodeError, TypeError):
+                parsed_preferences = None
+        
         return JsonResponse({
             "authenticated": True,
             "user": {
@@ -186,7 +263,9 @@ def api_me(request):
                 "email": request.user.email,
                 "name": request.user.name,
                 "role": request.user.role,
-            }
+            },
+            "preferences": parsed_preferences,
+            "travel_reason": travel_reason
         }, status=200)
     else:
         return JsonResponse({"authenticated": False}, status=200)
@@ -233,20 +312,20 @@ def api_update_preferences(request):
     if not request.user.is_authenticated:
         return JsonResponse({"error": "Not authenticated"}, status=401)
 
-    raw_prefs = ""
+    preferences_data = {}
     if request.content_type and "json" in request.content_type:
         try:
             body = json.loads(request.body or "{}")
-            preferences_data = body.get("preferences", "")
-            # If preferences is already a dict/list, stringify it; otherwise use as-is
-            if isinstance(preferences_data, (dict, list)):
-                raw_prefs = json.dumps(preferences_data)
-            else:
-                raw_prefs = preferences_data
+            preferences_input = body.get("preferences", {})
+            # Handle both dict and stringified preferences
+            if isinstance(preferences_input, str):
+                preferences_data = json.loads(preferences_input)
+            elif isinstance(preferences_input, dict):
+                preferences_data = preferences_input
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
     else:
-        raw_prefs = request.POST.get("preferences", "")
+        return JsonResponse({"error": "Invalid content type"}, status=400)
 
     # Store on GuestProfile if present; otherwise HostProfile
     profile = None
@@ -256,8 +335,16 @@ def api_update_preferences(request):
         profile = request.user.host_profile
 
     if profile and hasattr(profile, "preferences"):
+        # Store raw preferences as JSON string
+        raw_prefs = json.dumps(preferences_data)
         profile.preferences = raw_prefs
+        
+        # Generate and store text preference description
+        preference_text = generate_preference_text(preferences_data)
+        if hasattr(profile, "travel_reason"):
+            profile.travel_reason = preference_text
+        
         profile.save()
-        return JsonResponse({"success": True, "message": "Preferences saved"})
+        return JsonResponse({"success": True, "message": "Preferences saved", "text": preference_text})
     else:
         return JsonResponse({"error": "No profile found"}, status=400)

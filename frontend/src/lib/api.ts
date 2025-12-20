@@ -50,6 +50,8 @@ export interface AuthResponse {
 export interface MeResponse {
   authenticated: boolean;
   user?: User;
+  preferences?: Record<string, any>;
+  travel_reason?: string;
 }
 
 /* =========================
@@ -212,7 +214,7 @@ export async function getCurrentUser(): Promise<MeResponse> {
 
 export async function savePreferences(
   preferences: Record<string, any>
-): Promise<void> {
+): Promise<any> {
   const response = await fetch(`${API_BASE_URL}/accounts/api/preferences/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -226,4 +228,6 @@ export async function savePreferences(
       .catch(() => ({ error: "Unknown error" }));
     throw new Error(errorData.error || "Failed to save preferences");
   }
+
+  return response.json();
 }
