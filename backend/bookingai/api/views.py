@@ -14,7 +14,6 @@ from api import models as m
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 
-@login_required(login_url="accounts/login/")
 def home_view(request):
     return render(request, "api/home.html", {"user": request.user})
 
@@ -36,7 +35,7 @@ def health_check(request):
         "service": "BookingAI API"
     })
 
-@csrf_exempt  
+@csrf_exempt
 def call_gemini(prompt: str) -> dict:
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:

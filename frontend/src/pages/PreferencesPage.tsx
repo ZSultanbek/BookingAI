@@ -1,14 +1,21 @@
-import React from 'react';
-import { Settings, Sparkles, Save } from 'lucide-react';
-import { useState } from 'react';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
-import { Label } from '../components/ui/label';
-import { Checkbox } from '../components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
-import { Slider } from '../components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { toast } from 'sonner';
+import React from "react";
+import { Settings, Sparkles, Save, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Label } from "../components/ui/label";
+import { Checkbox } from "../components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+import { Slider } from "../components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { toast } from "sonner";
+import { logout, getCurrentUser, savePreferences } from "../lib/api";
 
 interface PreferencesPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -16,39 +23,101 @@ interface PreferencesPageProps {
 
 export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
   const [priceRange, setPriceRange] = useState([100, 500]);
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>(['Free WiFi', 'Pool']);
-  const [travelPurpose, setTravelPurpose] = useState('leisure');
-  const [preferredLocation, setPreferredLocation] = useState('city-center');
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([
+    "Free WiFi",
+    "Pool",
+  ]);
+  const [travelPurpose, setTravelPurpose] = useState("leisure");
+  const [preferredLocation, setPreferredLocation] = useState("city-center");
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { authenticated } = await getCurrentUser();
+        if (!authenticated) {
+          toast.error("Please log in to access preferences");
+          window.location.href = "http://localhost:8000/accounts/login/";
+          return;
+        }
+      } catch (err) {
+        toast.error("Please log in to access preferences");
+        window.location.href = "http://localhost:8000/accounts/login/";
+        return;
+      }
+      setIsCheckingAuth(false);
+    };
+    checkAuth();
+  }, []);
 
   const amenitiesList = [
-    'Free WiFi',
-    'Pool',
-    'Spa',
-    'Restaurant',
-    'Gym',
-    'Parking',
-    'Bar',
-    'Beach Access',
-    'Pet Friendly',
-    'Airport Shuttle',
-    'Business Center',
-    'Room Service'
+    "Free WiFi",
+    "Pool",
+    "Spa",
+    "Restaurant",
+    "Gym",
+    "Parking",
+    "Bar",
+    "Beach Access",
+    "Pet Friendly",
+    "Airport Shuttle",
+    "Business Center",
+    "Room Service",
   ];
 
   const toggleAmenity = (amenity: string) => {
-    setSelectedAmenities(prev =>
+    setSelectedAmenities((prev) =>
       prev.includes(amenity)
-        ? prev.filter(a => a !== amenity)
+        ? prev.filter((a) => a !== amenity)
         : [...prev, amenity]
     );
   };
 
-  const handleSavePreferences = () => {
-    toast.success('Preferences saved successfully! AI recommendations will be updated.');
-    setTimeout(() => {
-      onNavigate('ai-recommendations');
-    }, 1500);
+  const handleSavePreferences = async () => {
+    try {
+      const preferences = {
+        priceRange,
+        selectedAmenities,
+        travelPurpose,
+        preferredLocation,
+      };
+
+      await savePreferences(preferences);
+
+      toast.success(
+        "Preferences saved successfully! AI recommendations will be updated."
+      );
+      setTimeout(() => {
+        onNavigate("ai-recommendations");
+      }, 1500);
+    } catch (error) {
+      toast.error("Failed to save preferences. Please try again.");
+      console.error(error);
+    }
   };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out. Redirecting to login...");
+      window.location.href = "http://localhost:8000/accounts/login/";
+    } catch (err: any) {
+      toast.error(err?.message || "Logout failed");
+    }
+  };
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -74,10 +143,13 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-lg text-gray-900 mb-2">Personalize Your Experience</h3>
+              <h3 className="text-lg text-gray-900 mb-2">
+                Personalize Your Experience
+              </h3>
               <p className="text-gray-700">
-                The more we know about your preferences, the better our AI can recommend hotels that match your style. 
-                Your preferences are stored locally and used only to improve your recommendations.
+                The more we know about your preferences, the better our AI can
+                recommend hotels that match your style. Your preferences are
+                stored locally and used only to improve your recommendations.
               </p>
             </div>
           </div>
@@ -88,7 +160,9 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
           <Card className="p-6">
             <h2 className="text-2xl text-gray-900 mb-4">Budget</h2>
             <div>
-              <Label className="mb-4 block">Preferred price range per night</Label>
+              <Label className="mb-4 block">
+                Preferred price range per night
+              </Label>
               <Slider
                 value={priceRange}
                 onValueChange={setPriceRange}
@@ -114,7 +188,9 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   <Label htmlFor="leisure" className="cursor-pointer flex-1">
                     <div>
                       <p className="text-gray-900">Leisure & Vacation</p>
-                      <p className="text-sm text-gray-600">Relaxation and enjoyment</p>
+                      <p className="text-sm text-gray-600">
+                        Relaxation and enjoyment
+                      </p>
                     </div>
                   </Label>
                 </div>
@@ -123,7 +199,9 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   <Label htmlFor="business" className="cursor-pointer flex-1">
                     <div>
                       <p className="text-gray-900">Business Travel</p>
-                      <p className="text-sm text-gray-600">Work-related trips</p>
+                      <p className="text-sm text-gray-600">
+                        Work-related trips
+                      </p>
                     </div>
                   </Label>
                 </div>
@@ -132,7 +210,9 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   <Label htmlFor="family" className="cursor-pointer flex-1">
                     <div>
                       <p className="text-gray-900">Family Vacation</p>
-                      <p className="text-sm text-gray-600">Traveling with family</p>
+                      <p className="text-sm text-gray-600">
+                        Traveling with family
+                      </p>
                     </div>
                   </Label>
                 </div>
@@ -141,7 +221,9 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   <Label htmlFor="adventure" className="cursor-pointer flex-1">
                     <div>
                       <p className="text-gray-900">Adventure & Exploration</p>
-                      <p className="text-sm text-gray-600">Outdoor activities and discovery</p>
+                      <p className="text-sm text-gray-600">
+                        Outdoor activities and discovery
+                      </p>
                     </div>
                   </Label>
                 </div>
@@ -154,7 +236,10 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
             <h2 className="text-2xl text-gray-900 mb-4">Location Preference</h2>
             <div>
               <Label className="mb-3 block">Where do you prefer to stay?</Label>
-              <Select value={preferredLocation} onValueChange={setPreferredLocation}>
+              <Select
+                value={preferredLocation}
+                onValueChange={setPreferredLocation}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -162,7 +247,9 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   <SelectItem value="city-center">City Center</SelectItem>
                   <SelectItem value="beach">Beachfront</SelectItem>
                   <SelectItem value="airport">Near Airport</SelectItem>
-                  <SelectItem value="business-district">Business District</SelectItem>
+                  <SelectItem value="business-district">
+                    Business District
+                  </SelectItem>
                   <SelectItem value="tourist-area">Tourist Area</SelectItem>
                   <SelectItem value="quiet">Quiet/Residential Area</SelectItem>
                 </SelectContent>
@@ -173,10 +260,15 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
           {/* Amenities */}
           <Card className="p-6">
             <h2 className="text-2xl text-gray-900 mb-4">Preferred Amenities</h2>
-            <p className="text-gray-600 mb-4">Select all amenities that are important to you</p>
+            <p className="text-gray-600 mb-4">
+              Select all amenities that are important to you
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {amenitiesList.map((amenity) => (
-                <div key={amenity} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50">
+                <div
+                  key={amenity}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50"
+                >
                   <Checkbox
                     id={amenity}
                     checked={selectedAmenities.includes(amenity)}
@@ -192,10 +284,22 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
 
           {/* Room Type Preferences */}
           <Card className="p-6">
-            <h2 className="text-2xl text-gray-900 mb-4">Room Type Preferences</h2>
+            <h2 className="text-2xl text-gray-900 mb-4">
+              Room Type Preferences
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {['King Bed', 'Twin Beds', 'Suite', 'Studio', 'Apartment', 'Villa'].map((roomType) => (
-                <div key={roomType} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50">
+              {[
+                "King Bed",
+                "Twin Beds",
+                "Suite",
+                "Studio",
+                "Apartment",
+                "Villa",
+              ].map((roomType) => (
+                <div
+                  key={roomType}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50"
+                >
                   <Checkbox id={roomType} />
                   <Label htmlFor={roomType} className="cursor-pointer">
                     {roomType}
@@ -207,24 +311,50 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
 
           {/* Save Button */}
           <div className="flex gap-4">
-            <Button onClick={handleSavePreferences} size="lg" className="flex-1">
+            <Button
+              onClick={handleSavePreferences}
+              size="lg"
+              className="flex-1"
+            >
               <Save className="w-5 h-5 mr-2" />
               Save Preferences
             </Button>
-            <Button variant="outline" size="lg" onClick={() => onNavigate('home')}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => onNavigate("home")}
+            >
               Cancel
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={handleLogout}
+              className="flex-1 text-red-600 hover:text-red-700"
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              Logout
             </Button>
           </div>
         </div>
 
         {/* Tips */}
         <Card className="p-6 mt-8">
-          <h3 className="text-lg text-gray-900 mb-3">💡 Tips for Better Recommendations</h3>
+          <h3 className="text-lg text-gray-900 mb-3">
+            💡 Tips for Better Recommendations
+          </h3>
           <ul className="space-y-2 text-gray-700">
-            <li>• Update your preferences regularly to reflect your changing needs</li>
-            <li>• The more specific you are, the better our AI can match you with hotels</li>
+            <li>
+              • Update your preferences regularly to reflect your changing needs
+            </li>
+            <li>
+              • The more specific you are, the better our AI can match you with
+              hotels
+            </li>
             <li>• Like hotels you're interested in to help train the AI</li>
-            <li>• Your preferences are only stored in your browser for privacy</li>
+            <li>
+              • Your preferences are only stored in your browser for privacy
+            </li>
           </ul>
         </Card>
       </div>

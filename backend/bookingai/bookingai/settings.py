@@ -137,3 +137,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Session settings: keep users logged in (30 days)
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = False
