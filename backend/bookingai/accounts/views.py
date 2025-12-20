@@ -226,6 +226,7 @@ def update_preferences(request):
     return redirect('home')
 
 
+@csrf_exempt
 @require_POST
 def api_update_preferences(request):
     """API endpoint to update current user's preferences; returns JSON."""
@@ -236,7 +237,12 @@ def api_update_preferences(request):
     if request.content_type and "json" in request.content_type:
         try:
             body = json.loads(request.body or "{}")
-            raw_prefs = body.get("preferences", "")
+            preferences_data = body.get("preferences", "")
+            # If preferences is already a dict/list, stringify it; otherwise use as-is
+            if isinstance(preferences_data, (dict, list)):
+                raw_prefs = json.dumps(preferences_data)
+            else:
+                raw_prefs = preferences_data
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
     else:

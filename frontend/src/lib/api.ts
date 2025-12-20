@@ -217,10 +217,13 @@ export async function savePreferences(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ preferences: JSON.stringify(preferences) }),
+    body: JSON.stringify({ preferences: preferences }),
   });
 
   if (!response.ok) {
-    throw new Error("Failed to save preferences");
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to save preferences");
   }
 }
