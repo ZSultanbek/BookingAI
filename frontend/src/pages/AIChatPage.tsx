@@ -4,8 +4,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { aiChat } from '../lib/api';
-import { mockHotels } from "../data/mockData";
+import { aiChat, getProperties } from '../lib/api';
+import { Hotel } from '../types';
 
 interface AIChatPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -29,7 +29,20 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [hotels, setHotels] = useState<Hotel[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    async function fetchHotels() {
+      try {
+        const properties = await getProperties();
+        setHotels(properties);
+      } catch (err) {
+        console.error('Error fetching hotels for AI chat:', err);
+      }
+    }
+    fetchHotels();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -95,7 +108,7 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
       const aiText = await aiChat({
         message: userInput,
         preferences,
-        hotels: mockHotels
+        hotels: hotels.length > 0 ? hotels : []
       });
       
       const aiResponse: Message = {

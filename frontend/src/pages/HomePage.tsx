@@ -1,12 +1,12 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, MapPin, Calendar, Users, Sparkles, TrendingUp } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { HotelCard } from '../components/HotelCard';
-import { mockHotels } from '../data/mockData';
-import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { getProperties } from '../lib/api';
+import { Hotel } from '../types';
 
 interface HomePageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -19,13 +19,32 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState('2');
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchHotels() {
+      try {
+        setLoading(true);
+        const properties = await getProperties();
+        setHotels(properties);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load hotels');
+        console.error('Error fetching hotels:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHotels();
+  }, []);
 
   const handleSearch = () => {
     onNavigate('search', { destination, checkIn, checkOut, guests });
   };
 
-  const aiRecommendations = mockHotels.filter(h => h.aiScore >= 85).slice(0, 3);
-  const popularHotels = mockHotels.slice(0, 3);
+  const aiRecommendations = hotels.filter(h => h.aiScore >= 85).slice(0, 3);
+  const popularHotels = hotels.slice(0, 3);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -109,6 +128,20 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {loading && (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Loading hotels...</p>
+          </div>
+        )}
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-800">Error: {error}</p>
+          </div>
+        )}
+
+        {!loading && !error && (
+          <>
         {/* AI Recommendations */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-6">
@@ -126,6 +159,7 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
             </Button>
           </div>
           
+              {aiRecommendations.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {aiRecommendations.map((hotel) => (
               <HotelCard
@@ -137,6 +171,9 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
               />
             ))}
           </div>
+              ) : (
+                <p className="text-gray-600">No AI recommendations available yet.</p>
+              )}
         </div>
 
         {/* Popular Destinations */}
@@ -154,6 +191,7 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
             </Button>
           </div>
           
+              {popularHotels.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {popularHotels.map((hotel) => (
               <HotelCard
@@ -165,7 +203,12 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
               />
             ))}
           </div>
+              ) : (
+                <p className="text-gray-600">No hotels available.</p>
+              )}
         </div>
+          </>
+        )}
 
         {/* Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">

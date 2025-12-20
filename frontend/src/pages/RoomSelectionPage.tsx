@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Users, Maximize, Bed, Check } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { mockHotels } from '../data/mockData';
+import { getProperty } from '../lib/api';
+import { Hotel } from '../types';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 interface RoomSelectionPageProps {
@@ -12,14 +13,42 @@ interface RoomSelectionPageProps {
 }
 
 export function RoomSelectionPage({ hotelId, onNavigate }: RoomSelectionPageProps) {
-  const hotel = mockHotels.find(h => h.id === hotelId);
+  const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
 
-  if (!hotel) {
+  useEffect(() => {
+    async function fetchHotel() {
+      try {
+        setLoading(true);
+        const propertyData = await getProperty(hotelId);
+        setHotel(propertyData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load hotel');
+        console.error('Error fetching hotel:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHotel();
+  }, [hotelId]);
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl text-gray-900 mb-2">Hotel not found</h2>
+          <p className="text-gray-600">Loading rooms...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !hotel) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl text-gray-900 mb-2">{error || 'Hotel not found'}</h2>
           <Button onClick={() => onNavigate('home')}>Return to Home</Button>
         </div>
       </div>
@@ -48,8 +77,13 @@ export function RoomSelectionPage({ hotelId, onNavigate }: RoomSelectionPageProp
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          {hotel.rooms.map((room) => (
+        {hotel.rooms.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">No rooms available for this property.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {hotel.rooms.map((room) => (
             <Card key={room.id} className={`p-6 ${selectedRoom === room.id ? 'ring-2 ring-blue-600' : ''}`}>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="md:col-span-1">
@@ -121,8 +155,9 @@ export function RoomSelectionPage({ hotelId, onNavigate }: RoomSelectionPageProp
                 </div>
               </div>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {selectedRoom && (
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">

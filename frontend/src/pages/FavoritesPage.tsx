@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, Grid, List, ArrowUpDown } from 'lucide-react';
-import { useState } from 'react';
 import { Button } from '../components/ui/button';
 import { HotelCard } from '../components/HotelCard';
-import { mockHotels } from '../data/mockData';
+import { getProperties } from '../lib/api';
+import { Hotel } from '../types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface FavoritesPageProps {
@@ -15,8 +15,24 @@ interface FavoritesPageProps {
 export function FavoritesPage({ onNavigate, favorites, onToggleFavorite }: FavoritesPageProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('added');
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const favoriteHotels = mockHotels.filter(hotel => favorites.includes(hotel.id));
+  useEffect(() => {
+    async function fetchHotels() {
+      try {
+        const properties = await getProperties();
+        setHotels(properties);
+      } catch (err) {
+        console.error('Error fetching hotels:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHotels();
+  }, []);
+
+  const favoriteHotels = hotels.filter(hotel => favorites.includes(hotel.id));
 
   const sortedHotels = [...favoriteHotels].sort((a, b) => {
     switch (sortBy) {
@@ -50,7 +66,11 @@ export function FavoritesPage({ onNavigate, favorites, onToggleFavorite }: Favor
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {favoriteHotels.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Loading favorites...</p>
+          </div>
+        ) : favoriteHotels.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-24 h-24 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Heart className="w-12 h-12 text-pink-600" />

@@ -1,11 +1,13 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Star, MapPin, Heart, Share2, Wifi, Utensils, Dumbbell, Car, Sparkles, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Card } from '../components/ui/card';
-import { mockHotels } from '../data/mockData';
+import { getProperty, getPropertyReviews } from '../lib/api';
+import { Hotel } from '../types';
+import { PropertyReview } from '../lib/api';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 interface HotelDetailsPageProps {
@@ -16,14 +18,47 @@ interface HotelDetailsPageProps {
 }
 
 export function HotelDetailsPage({ hotelId, onNavigate, favorites, onToggleFavorite }: HotelDetailsPageProps) {
-  const hotel = mockHotels.find(h => h.id === hotelId);
+  const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [reviews, setReviews] = useState<PropertyReview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
 
-  if (!hotel) {
+  useEffect(() => {
+    async function fetchHotelData() {
+      try {
+        setLoading(true);
+        const [propertyData, reviewsData] = await Promise.all([
+          getProperty(hotelId),
+          getPropertyReviews(hotelId).catch(() => []) // Reviews are optional
+        ]);
+        setHotel(propertyData);
+        setReviews(reviewsData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load hotel');
+        console.error('Error fetching hotel:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHotelData();
+  }, [hotelId]);
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl text-gray-900 mb-2">Hotel not found</h2>
+          <p className="text-gray-600">Loading hotel details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !hotel) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl text-gray-900 mb-2">{error || 'Hotel not found'}</h2>
           <Button onClick={() => onNavigate('home')}>Return to Home</Button>
         </div>
       </div>
@@ -160,22 +195,36 @@ export function HotelDetailsPage({ hotelId, onNavigate, favorites, onToggleFavor
 
                 <TabsContent value="reviews" className="mt-6">
                   <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <Card key={i} className="p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, j) => (
-                              <Star key={j} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            ))}
+                    {reviews.length > 0 ? (
+                      reviews.map((review) => (
+                        <Card key={review.review_id} className="p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, j) => (
+                                <Star 
+                                  key={j} 
+                                  className={`w-4 h-4 ${j < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                                />
+                              ))}
+                            </div>
+                            <span className="text-gray-900">{review.guest_email || 'Anonymous'}</span>
+                            <span className="text-gray-500 text-sm">
+                              • {new Date(review.created_at).toLocaleDateString()}
+                            </span>
                           </div>
-                          <span className="text-gray-900">John Doe</span>
-                          <span className="text-gray-500 text-sm">• 2 days ago</span>
-                        </div>
-                        <p className="text-gray-700">
-                          Amazing stay! The hotel exceeded all expectations. Staff was incredibly friendly and helpful.
-                        </p>
-                      </Card>
-                    ))}
+                          {review.comment && (
+                            <p className="text-gray-700 mb-2">{review.comment}</p>
+                          )}
+                          {review.ai_accuracy_feedback && (
+                            <p className="text-sm text-blue-600 italic">
+                              AI Feedback: {review.ai_accuracy_feedback}
+                            </p>
+                          )}
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-gray-600">No reviews yet for this property.</p>
+                    )}
                   </div>
                 </TabsContent>
 

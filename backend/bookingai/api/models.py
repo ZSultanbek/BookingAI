@@ -18,7 +18,7 @@ class Property(models.Model):
     location = models.CharField(max_length=255)
     description = models.TextField()
     amenities = models.TextField(blank=True, null=True)
-    price_per_night = models.DecimalField(max_digits=8, decimal_places=2)
+    price_per_night = models.DecimalField(max_digits=8, decimal_places=2, default=0.0)
 
     # AI evaluation
     ai_verified_score = models.TextField(default="No evaluation yet")

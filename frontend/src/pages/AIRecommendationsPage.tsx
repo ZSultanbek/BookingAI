@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, TrendingUp, Heart, Briefcase, Palmtree, Mountain } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { HotelCard } from '../components/HotelCard';
-import { mockHotels } from '../data/mockData';
+import { getProperties } from '../lib/api';
+import { Hotel } from '../types';
 import { Progress } from '../components/ui/progress';
 
 interface AIRecommendationsPageProps {
@@ -14,9 +15,26 @@ interface AIRecommendationsPageProps {
 }
 
 export function AIRecommendationsPage({ onNavigate, favorites, onToggleFavorite }: AIRecommendationsPageProps) {
-  const topRecommendations = mockHotels.filter(h => h.aiScore >= 90);
-  const goodMatches = mockHotels.filter(h => h.aiScore >= 85 && h.aiScore < 90);
-  const otherOptions = mockHotels.filter(h => h.aiScore < 85);
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchHotels() {
+      try {
+        const properties = await getProperties();
+        setHotels(properties);
+      } catch (err) {
+        console.error('Error fetching hotels:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHotels();
+  }, []);
+
+  const topRecommendations = hotels.filter(h => h.aiScore >= 90);
+  const goodMatches = hotels.filter(h => h.aiScore >= 85 && h.aiScore < 90);
+  const otherOptions = hotels.filter(h => h.aiScore < 85);
 
   const preferences = [
     { name: 'Luxury', value: 95, icon: Sparkles },
@@ -42,6 +60,14 @@ export function AIRecommendationsPage({ onNavigate, favorites, onToggleFavorite 
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {loading && (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Loading recommendations...</p>
+          </div>
+        )}
+
+        {!loading && (
+          <>
         {/* AI Preference Analysis */}
         <Card className="p-6 mb-8">
           <div className="flex items-center gap-3 mb-6">
@@ -173,6 +199,8 @@ export function AIRecommendationsPage({ onNavigate, favorites, onToggleFavorite 
             </div>
           </div>
         </Card>
+          </>
+        )}
       </div>
     </div>
   );

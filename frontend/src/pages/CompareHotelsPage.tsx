@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Star, MapPin, Check, X, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { mockHotels } from '../data/mockData';
+import { getProperties } from '../lib/api';
+import { Hotel } from '../types';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { useState } from 'react';
 
 interface CompareHotelsPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -14,14 +14,37 @@ interface CompareHotelsPageProps {
 }
 
 export function CompareHotelsPage({ onNavigate, favorites }: CompareHotelsPageProps) {
-  const favoriteHotels = mockHotels.filter(hotel => favorites.includes(hotel.id));
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const favoriteHotels = hotels.filter(hotel => favorites.includes(hotel.id));
   const [selectedHotels, setSelectedHotels] = useState<string[]>(
     favoriteHotels.slice(0, 3).map(h => h.id)
   );
 
+  useEffect(() => {
+    async function fetchHotels() {
+      try {
+        const properties = await getProperties();
+        setHotels(properties);
+      } catch (err) {
+        console.error('Error fetching hotels:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHotels();
+  }, []);
+
+  // Update selected hotels when favoriteHotels changes
+  useEffect(() => {
+    if (favoriteHotels.length > 0 && selectedHotels.length === 0) {
+      setSelectedHotels(favoriteHotels.slice(0, 3).map(h => h.id));
+    }
+  }, [favoriteHotels.length]);
+
   const hotelsToCompare = selectedHotels
-    .map(id => mockHotels.find(h => h.id === id))
-    .filter(Boolean) as typeof mockHotels;
+    .map(id => hotels.find(h => h.id === id))
+    .filter((h): h is Hotel => h !== undefined);
 
   const allAmenities = Array.from(
     new Set(hotelsToCompare.flatMap(hotel => hotel.amenities))
@@ -46,6 +69,12 @@ export function CompareHotelsPage({ onNavigate, favorites }: CompareHotelsPagePr
         </div>
       </div>
 
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600">Loading hotels...</p>
+        </div>
+      ) : (
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hotel Selection */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -60,7 +89,7 @@ export function CompareHotelsPage({ onNavigate, favorites }: CompareHotelsPagePr
                   <SelectValue placeholder="Select a hotel" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockHotels.map((hotel) => (
+                  {hotels.map((hotel) => (
                     <SelectItem key={hotel.id} value={hotel.id}>
                       {hotel.name}
                     </SelectItem>
@@ -217,6 +246,7 @@ export function CompareHotelsPage({ onNavigate, favorites }: CompareHotelsPagePr
           </Card>
         )}
       </div>
+      )}
     </div>
   );
 }

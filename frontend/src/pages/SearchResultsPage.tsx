@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { SlidersHorizontal, Sparkles, Grid, List, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { HotelCard } from '../components/HotelCard';
-import { mockHotels } from '../data/mockData';
+import { getProperties } from '../lib/api';
+import { Hotel } from '../types';
 import { Slider } from '../components/ui/slider';
 import { Checkbox } from '../components/ui/checkbox';
 import { Label } from '../components/ui/label';
@@ -23,6 +24,9 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('ai-score');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const amenitiesList = ['Free WiFi', 'Pool', 'Spa', 'Restaurant', 'Gym', 'Parking', 'Bar', 'Beach Access'];
 
@@ -34,7 +38,28 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
   const [aiSortedIds, setAiSortedIds] = useState<string[] | null>(null);
 
   useEffect(() => {
-    if (sortBy !== "ai-score") {
+    async function fetchHotels() {
+      try {
+        setLoading(true);
+        const properties = await getProperties();
+        setHotels(properties);
+        // Set max price range based on fetched hotels
+        if (properties.length > 0) {
+          const maxPrice = Math.max(...properties.map(h => h.price));
+          setPriceRange([0, Math.ceil(maxPrice / 50) * 50]); // Round up to nearest 50
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load hotels');
+        console.error('Error fetching hotels:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHotels();
+  }, []);
+
+  useEffect(() => {
+    if (sortBy !== "ai-score" || hotels.length === 0) {
       setAiSortedIds(null);
       return;
     }
@@ -43,7 +68,7 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
       try {
         const ids = await aiSortRooms({
           preferences,
-          rooms: mockHotels.map(h => ({
+          rooms: hotels.map(h => ({
             id: h.id,
             price: h.price,
             rating: h.rating,
@@ -58,9 +83,9 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
     }
 
     sortWithAI();
-  }, [sortBy, selectedAmenities]);
+  }, [sortBy, selectedAmenities, hotels]);
 
-  const filteredHotelsBase = mockHotels
+  const filteredHotelsBase = hotels
   .filter(hotel => hotel.price >= priceRange[0] && hotel.price <= priceRange[1])
   .filter(hotel =>
     selectedAmenities.length === 0 ||
@@ -71,7 +96,7 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
     if (sortBy === "ai-score" && aiSortedIds) {
       return aiSortedIds
         .map(id => filteredHotelsBase.find(h => h.id === id))
-        .filter((h): h is (typeof mockHotels)[number] => h !== undefined);
+        .filter((h): h is Hotel => h !== undefined);
     }
 
     return [...filteredHotelsBase].sort((a, b) => {
@@ -216,43 +241,57 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex gap-8">
-          {/* Desktop Filters */}
-          <aside className="hidden md:block w-72 flex-shrink-0">
-            <div className="bg-white rounded-lg p-6 sticky top-24">
-              <div className="flex items-center gap-2 mb-6">
-                <SlidersHorizontal className="w-5 h-5 text-gray-700" />
-                <h2 className="text-xl text-gray-900">Filters</h2>
-              </div>
-              <FilterPanel />
-            </div>
-          </aside>
-
-          {/* Results */}
-          <div className="flex-1">
-            <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-6'}>
-              {filteredHotels.map((hotel) => (
-                <HotelCard
-                  key={hotel.id}
-                  hotel={hotel}
-                  onViewDetails={(id) => onNavigate('hotel-details', { hotelId: id })}
-                  isFavorite={favorites.includes(hotel.id)}
-                  onToggleFavorite={onToggleFavorite}
-                />
-              ))}
-            </div>
-
-            {filteredHotels.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-12 h-12 text-gray-400" />
-                </div>
-                <h3 className="text-xl text-gray-900 mb-2">No hotels found</h3>
-                <p className="text-gray-600">Try adjusting your filters or search criteria</p>
-              </div>
-            )}
+        {loading && (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Loading hotels...</p>
           </div>
-        </div>
+        )}
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-800">Error: {error}</p>
+          </div>
+        )}
+
+        {!loading && !error && (
+          <div className="flex gap-8">
+            {/* Desktop Filters */}
+            <aside className="hidden md:block w-72 flex-shrink-0">
+              <div className="bg-white rounded-lg p-6 sticky top-24">
+                <div className="flex items-center gap-2 mb-6">
+                  <SlidersHorizontal className="w-5 h-5 text-gray-700" />
+                  <h2 className="text-xl text-gray-900">Filters</h2>
+                </div>
+                <FilterPanel />
+              </div>
+            </aside>
+
+            {/* Results */}
+            <div className="flex-1">
+              <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-6'}>
+                {filteredHotels.map((hotel) => (
+                  <HotelCard
+                    key={hotel.id}
+                    hotel={hotel}
+                    onViewDetails={(id) => onNavigate('hotel-details', { hotelId: id })}
+                    isFavorite={favorites.includes(hotel.id)}
+                    onToggleFavorite={onToggleFavorite}
+                  />
+                ))}
+              </div>
+
+              {filteredHotels.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-12 h-12 text-gray-400" />
+                  </div>
+                  <h3 className="text-xl text-gray-900 mb-2">No hotels found</h3>
+                  <p className="text-gray-600">Try adjusting your filters or search criteria</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

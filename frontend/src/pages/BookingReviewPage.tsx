@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Calendar, Users, CreditCard, Shield } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Separator } from '../components/ui/separator';
-import { mockHotels } from '../data/mockData';
+import { getProperty } from '../lib/api';
+import { Hotel } from '../types';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 interface BookingReviewPageProps {
@@ -15,14 +16,43 @@ interface BookingReviewPageProps {
 }
 
 export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReviewPageProps) {
-  const hotel = mockHotels.find(h => h.id === hotelId);
+  const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchHotel() {
+      try {
+        setLoading(true);
+        const propertyData = await getProperty(hotelId);
+        setHotel(propertyData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load hotel');
+        console.error('Error fetching hotel:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHotel();
+  }, [hotelId]);
+
   const room = hotel?.rooms.find(r => r.id === roomId);
 
-  if (!hotel || !room) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl text-gray-900 mb-2">Booking details not found</h2>
+          <p className="text-gray-600">Loading booking details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !hotel || !room) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl text-gray-900 mb-2">{error || 'Booking details not found'}</h2>
           <Button onClick={() => onNavigate('home')}>Return to Home</Button>
         </div>
       </div>
