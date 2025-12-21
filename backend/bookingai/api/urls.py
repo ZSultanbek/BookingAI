@@ -16,7 +16,8 @@ from .views import (
     create_booking,
     guest_bookings,
     create_review,
-    review_detail
+    review_detail,
+    property_evaluation
 )
 from api import views
 
@@ -25,6 +26,7 @@ urlpatterns = [
     path("properties/", properties_list, name="properties_list"),
     path("properties/<int:property_id>/", property_detail, name="property_detail"),
     path("properties/<int:property_id>/reviews/", property_reviews, name="property_reviews"),
+    path("properties/<int:property_id>/evaluation/", property_evaluation, name="property_evaluation"),
     path("ai/chat/", ai_chat, name="ai_chat"),
     path("ai/sort-rooms/", ai_sort_rooms, name="ai_sort_rooms"),
     # Host property and room management

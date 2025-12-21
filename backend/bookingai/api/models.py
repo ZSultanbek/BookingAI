@@ -22,6 +22,8 @@ class Property(models.Model):
 
     # AI evaluation
     ai_verified_score = models.TextField(default="No evaluation yet")
+    ai_evaluation = models.JSONField(default=dict, blank=True)
+    ai_evaluation_updated_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.name} ({self.location})"

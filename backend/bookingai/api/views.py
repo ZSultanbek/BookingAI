@@ -953,6 +953,10 @@ def create_review(request, booking_id: int):
             ai_accuracy_feedback=ai_accuracy_feedback
         )
         
+        # Evaluate the property using AI
+        property = booking.room.property
+        evaluation = evaluate_property_with_ai(property.property_id)
+        
         return JsonResponse({
             "success": True,
             "message": "Review created successfully",
@@ -962,7 +966,8 @@ def create_review(request, booking_id: int):
                 "comment": review.comment,
                 "ai_accuracy_feedback": review.ai_accuracy_feedback,
                 "created_at": review.created_at.isoformat()
-            }
+            },
+            "property_evaluation": evaluation
         }, status=201)
     
     except m.Booking.DoesNotExist:
@@ -1040,3 +1045,104 @@ def review_detail(request, review_id: int):
     elif request.method == "DELETE":
         review.delete()
         return JsonResponse({"success": True, "message": "Review deleted successfully"}, status=200)
+
+
+# ----------------------------
+#  PROPERTY AI EVALUATION
+# ----------------------------
+def evaluate_property_with_ai(property_id: int):
+    """Evaluate a property based on all its reviews using AI."""
+    try:
+        property = m.Property.objects.get(property_id=property_id)
+        
+        # Get all reviews for rooms in this property
+        reviews = m.Review.objects.filter(
+            booking__room__property=property
+        ).select_related('booking__room')
+        
+        if reviews.count() == 0:
+            return {
+                "overall_score": "N/A",
+                "total_reviews": 0,
+                "average_rating": 0,
+                "evaluation": "No reviews yet"
+            }
+        
+        # Aggregate review data
+        ratings = [review.rating for review in reviews]
+        comments = [review.comment for review in reviews if review.comment]
+        average_rating = sum(ratings) / len(ratings)
+        
+        # Create evaluation prompt
+        evaluation_prompt = f"""
+Based on the following guest reviews for the property "{property.name}" located in {property.location}:
+
+Property Details:
+- Amenities: {property.amenities}
+- Description: {property.description}
+- Price per night: ${property.price_per_night}
+
+Guest Reviews (Total: {len(reviews)}):
+"""
+        
+        for i, review in enumerate(reviews, 1):
+            evaluation_prompt += f"\nReview {i} (Rating: {review.rating}/5):\n"
+            evaluation_prompt += f"Comment: {review.comment}\n"
+            if review.ai_accuracy_feedback:
+                evaluation_prompt += f"AI Feedback: {review.ai_accuracy_feedback}\n"
+        
+        evaluation_prompt += """
+Please provide a comprehensive evaluation of this property that includes:
+1. Overall Quality Score (0-100)
+2. Strengths (based on positive feedback)
+3. Areas for Improvement (based on negative feedback)
+4. Amenities Assessment (are they meeting guest expectations?)
+5. Value for Money (considering price and guest satisfaction)
+6. Service Quality Assessment
+7. Cleanliness and Maintenance Rating
+8. Key Recommendations for the host
+
+Format your response as a detailed analysis."""
+
+        # Call Gemini API
+        api_response = call_gemini(evaluation_prompt)
+        
+        # Store evaluation
+        property.ai_evaluation = {
+            "total_reviews": reviews.count(),
+            "average_rating": float(average_rating),
+            "evaluation": api_response,
+            "generated_at": timezone.now().isoformat()
+        }
+        property.ai_evaluation_updated_at = timezone.now()
+        property.save()
+        
+        return property.ai_evaluation
+    
+    except m.Property.DoesNotExist:
+        return {"error": "Property not found"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def property_evaluation(request, property_id: int):
+    """Get the AI evaluation for a property."""
+    try:
+        property = m.Property.objects.get(property_id=property_id)
+        
+        evaluation_data = property.ai_evaluation or {}
+        
+        return JsonResponse({
+            "property_id": property.property_id,
+            "property_name": property.name,
+            "property_location": property.location,
+            "evaluation": evaluation_data,
+            "updated_at": property.ai_evaluation_updated_at.isoformat()
+        }, status=200)
+    
+    except m.Property.DoesNotExist:
+        return JsonResponse({"error": "Property not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
