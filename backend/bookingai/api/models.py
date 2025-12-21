@@ -146,3 +146,30 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review {self.review_id} | Rating {self.rating}"
+
+
+# ----------------------------
+#  FAVOURITE PROPERTY (guest's favourite properties list)
+# ----------------------------
+class FavouriteProperty(models.Model):
+    favourite_id = models.AutoField(primary_key=True)
+
+    guest = models.ForeignKey(
+        GuestProfile,
+        on_delete=models.CASCADE,
+        related_name="favourite_properties"
+    )
+
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="added_by_guests"
+    )
+
+    added_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ('guest', 'property')
+
+    def __str__(self):
+        return f"{self.guest.user.email} - {self.property.name}"

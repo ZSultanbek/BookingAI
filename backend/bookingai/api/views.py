@@ -706,3 +706,95 @@ def host_room_detail(request, property_id, room_id):
     elif request.method == "DELETE":
         room.delete()
         return JsonResponse({"success": True, "message": "Room deleted"}, status=200)
+
+
+# ----------------------------
+#  FAVOURITE PROPERTIES
+# ----------------------------
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def guest_favourites(request):
+    """Get guest's favourite properties or add a new favourite."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+    
+    try:
+        guest_profile = request.user.guest_profile
+    except:
+        return JsonResponse({"error": "User is not a guest"}, status=403)
+    
+    if request.method == "GET":
+        # Get all favourite properties for the guest
+        favourites = m.FavouriteProperty.objects.filter(guest=guest_profile).select_related('property')
+        
+        favourites_data = []
+        for fav in favourites:
+            property = fav.property
+            favourites_data.append({
+                "favourite_id": fav.favourite_id,
+                "property_id": property.property_id,
+                "name": property.name,
+                "location": property.location,
+                "description": property.description,
+                "amenities": property.amenities,
+                "price_per_night": float(property.price_per_night),
+                "ai_verified_score": property.ai_verified_score,
+                "added_at": fav.added_at.isoformat()
+            })
+
+        return JsonResponse({"favourites": favourites_data}, status=200)
+    
+    elif request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            property_id = data.get("property_id")
+            
+            if not property_id:
+                return JsonResponse({"error": "property_id is required"}, status=400)
+            
+            property = m.Property.objects.get(property_id=property_id)
+            
+            # Check if already in favourites
+            existing = m.FavouriteProperty.objects.filter(guest=guest_profile, property=property).first()
+            if existing:
+                return JsonResponse({"error": "Property already in favourites"}, status=400)
+            
+            # Add to favourites
+            favourite = m.FavouriteProperty.objects.create(guest=guest_profile, property=property)
+            
+            return JsonResponse({
+                "success": True,
+                "message": "Property added to favourites",
+                "favourite_id": favourite.favourite_id,
+                "added_at": favourite.added_at.isoformat()
+            }, status=201)
+        
+        except m.Property.DoesNotExist:
+            return JsonResponse({"error": "Property not found"}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def remove_favourite(request, favourite_id: int):
+    """Remove a property from guest's favourites."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+    
+    try:
+        guest_profile = request.user.guest_profile
+    except:
+        return JsonResponse({"error": "User is not a guest"}, status=403)
+    
+    try:
+        favourite = m.FavouriteProperty.objects.get(favourite_id=favourite_id, guest=guest_profile)
+        favourite.delete()
+        return JsonResponse({"success": True, "message": "Property removed from favourites"}, status=200)
+    
+    except m.FavouriteProperty.DoesNotExist:
+        return JsonResponse({"error": "Favourite not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

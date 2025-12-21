@@ -1,28 +1,28 @@
-import React, { useState } from 'react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Card } from '../components/ui/card';
-import { Label } from '../components/ui/label';
+import React, { useState } from "react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Card } from "../components/ui/card";
+import { Label } from "../components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../components/ui/select';
-import { register } from '../lib/api';
-import { toast } from 'sonner';
+} from "../components/ui/select";
+import { register } from "../lib/api";
+import { toast } from "sonner";
 
 interface RegisterPageProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
 export function RegisterPage({ onNavigate }: RegisterPageProps) {
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
-  const [password2, setPassword2] = useState('');
-  const [userType, setUserType] = useState<'guest' | 'host'>('guest');
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
+  const [userType, setUserType] = useState<"guest" | "host">("guest");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,15 +32,15 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
 
     // Validate passwords match
     if (password !== password2) {
-      setError('Passwords do not match.');
-      toast.error('Passwords do not match.');
+      setError("Passwords do not match.");
+      toast.error("Passwords do not match.");
       return;
     }
 
     // Validate required fields
     if (!email || !name || !password) {
-      setError('Email, name, and password are required.');
-      toast.error('Please fill in all required fields.');
+      setError("Email, name, and password are required.");
+      toast.error("Please fill in all required fields.");
       return;
     }
 
@@ -49,11 +49,12 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
     try {
       const response = await register(email, name, password, userType);
       if (response.success) {
-        toast.success('Account created successfully!');
-        onNavigate('home');
+        toast.success("Account created successfully!");
+        onNavigate("home");
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      const errorMessage =
+        err instanceof Error ? err.message : "Registration failed";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -62,24 +63,33 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8"
+    <div
+      className="relative min-h-screen flex items-center justify-center p-8"
       style={{
-        background: 'radial-gradient(circle at 20% 20%, rgba(3, 2, 19, 0.04), transparent 30%), radial-gradient(circle at 80% 0%, rgba(3, 2, 19, 0.05), transparent 32%), #f8f9fb'
+        background:
+          "radial-gradient(circle at 20% 20%, rgba(3, 2, 19, 0.04), transparent 30%), radial-gradient(circle at 80% 0%, rgba(3, 2, 19, 0.05), transparent 32%), #f8f9fb",
       }}
     >
-      <Card className="w-full max-w-[520px] p-7 shadow-2xl border-gray-200">
+      <Card className="w-full max-w-[520px] p-7 border border-gray-200 shadow-xl bg-white rounded-xl">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-[10px] bg-[#030213] flex items-center justify-center text-white font-extrabold text-sm tracking-wide">
+          <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-[#030213] to-[#1f1b3a] flex items-center justify-center text-white font-extrabold text-sm tracking-wide shadow-sm">
             AI
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 m-0">Create your account</h1>
-            <p className="text-[0.98rem] text-gray-500 mt-1 mb-0">Join BookingAI to personalize your stays.</p>
+            <h1 className="text-xl font-bold text-gray-900 m-0">
+              Create your account
+            </h1>
+            <p className="text-[0.98rem] text-gray-500 mt-1 mb-0">
+              Join BookingAI to personalize your stays.
+            </p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-5">
-          <Label htmlFor="email" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
+        <form onSubmit={handleSubmit} className="mt-6">
+          <Label
+            htmlFor="email"
+            className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]"
+          >
             Email
           </Label>
           <Input
@@ -92,7 +102,10 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
             className="w-full px-3 py-3 rounded-xl border border-gray-200 bg-[#f3f3f5] text-base transition-all focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[rgba(165,180,252,0.35)] focus:outline-none"
           />
 
-          <Label htmlFor="name" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
+          <Label
+            htmlFor="name"
+            className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]"
+          >
             Name
           </Label>
           <Input
@@ -105,7 +118,10 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
             className="w-full px-3 py-3 rounded-xl border border-gray-200 bg-[#f3f3f5] text-base transition-all focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[rgba(165,180,252,0.35)] focus:outline-none"
           />
 
-          <Label htmlFor="password" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
+          <Label
+            htmlFor="password"
+            className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]"
+          >
             Password
           </Label>
           <Input
@@ -118,7 +134,10 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
             className="w-full px-3 py-3 rounded-xl border border-gray-200 bg-[#f3f3f5] text-base transition-all focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[rgba(165,180,252,0.35)] focus:outline-none"
           />
 
-          <Label htmlFor="password2" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
+          <Label
+            htmlFor="password2"
+            className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]"
+          >
             Confirm Password
           </Label>
           <Input
@@ -131,10 +150,16 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
             className="w-full px-3 py-3 rounded-xl border border-gray-200 bg-[#f3f3f5] text-base transition-all focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[rgba(165,180,252,0.35)] focus:outline-none"
           />
 
-          <Label htmlFor="user_type" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
+          <Label
+            htmlFor="user_type"
+            className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]"
+          >
             Account Type
           </Label>
-          <Select value={userType} onValueChange={(value: 'guest' | 'host') => setUserType(value)}>
+          <Select
+            value={userType}
+            onValueChange={(value: "guest" | "host") => setUserType(value)}
+          >
             <SelectTrigger
               id="user_type"
               className="w-full h-11 px-3 py-3 rounded-xl border border-gray-200 bg-[#f3f3f5] text-base transition-all focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[rgba(165,180,252,0.35)] focus:outline-none"
@@ -154,16 +179,17 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full mt-4.5 py-3.5 px-3.5 bg-[#030213] text-white rounded-xl font-bold text-base hover:bg-[#11112a] transition-all active:translate-y-[1px] disabled:opacity-50"
+            className="w-full mt-5 py-3.5 px-3.5 bg-[#030213] text-white rounded-xl font-bold text-base hover:bg-[#11112a] transition-all active:translate-y-[1px] disabled:opacity-50"
           >
-            {loading ? 'Creating account...' : 'Create account'}
+            {loading ? "Creating account..." : "Create account"}
           </Button>
         </form>
 
         <div className="mt-4.5 text-center text-gray-500 text-[0.95rem]">
-          <span>Already have an account?{' '}
+          <span>
+            Already have an account?{" "}
             <button
-              onClick={() => onNavigate('login')}
+              onClick={() => onNavigate("login")}
               className="text-[#030213] font-bold no-underline hover:underline cursor-pointer bg-transparent border-0 p-0"
             >
               Sign in

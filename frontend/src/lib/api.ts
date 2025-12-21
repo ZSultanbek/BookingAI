@@ -454,3 +454,69 @@ export async function deleteRoom(
     throw new Error(errorData.error || "Failed to delete room");
   }
 }
+
+/* =========================
+   Favourites
+========================= */
+
+export interface FavouriteProperty {
+  favourite_id: number;
+  property_id: number;
+  name: string;
+  location: string;
+  description: string;
+  amenities: string;
+  price_per_night: number;
+  ai_verified_score: string;
+  added_at: string;
+}
+
+export async function getFavourites(): Promise<FavouriteProperty[]> {
+  const response = await fetch(`${API_BASE_URL}/api/guest/favourites/`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch favourites: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.favourites;
+}
+
+export async function addToFavourites(
+  propertyId: number
+): Promise<{ favourite_id: number; added_at: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/guest/favourites/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ property_id: propertyId }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to add to favourites");
+  }
+
+  return response.json();
+}
+
+export async function removeFromFavourites(favouriteId: number): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/guest/favourites/${favouriteId}/`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to remove from favourites");
+  }
+}
