@@ -10,8 +10,11 @@ from .views import (
     host_properties,
     host_property_detail,
     host_room_create,
-    host_room_detail
+    host_room_detail,
+    guest_favourites,
+    remove_favourite
 )
+from api import views
 
 urlpatterns = [
     path("health/", health_check, name="health_check"),
@@ -25,4 +28,7 @@ urlpatterns = [
     path("host/properties/<int:property_id>/", host_property_detail, name="host_property_detail"),
     path("host/properties/<int:property_id>/rooms/", host_room_create, name="host_room_create"),
     path("host/properties/<int:property_id>/rooms/<int:room_id>/", host_room_detail, name="host_room_detail"),
+    # Guest favourites
+    path("guest/favourites/", guest_favourites, name="guest_favourites"),
+    path("guest/favourites/<int:favourite_id>/", remove_favourite, name="remove_favourite"),
 ]

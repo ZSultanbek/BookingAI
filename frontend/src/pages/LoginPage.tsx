@@ -26,11 +26,12 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
     try {
       const response = await login(email, password);
       if (response.success) {
-        toast.success('Welcome back!');
-        onNavigate('home');
+        toast.success("Welcome back!");
+        onNavigate("home");
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Invalid email or password';
+      const errorMessage =
+        err instanceof Error ? err.message : "Invalid email or password";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -39,14 +40,16 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8"
+    <div
+      className="relative min-h-screen flex items-center justify-center p-8"
       style={{
-        background: 'radial-gradient(circle at 20% 20%, rgba(3, 2, 19, 0.04), transparent 30%), radial-gradient(circle at 80% 0%, rgba(3, 2, 19, 0.05), transparent 32%), #f8f9fb'
+        background:
+          "radial-gradient(circle at 20% 20%, rgba(3, 2, 19, 0.04), transparent 30%), radial-gradient(circle at 80% 0%, rgba(3, 2, 19, 0.05), transparent 32%), #f8f9fb",
       }}
     >
-      <Card className="w-full max-w-[420px] p-7 shadow-2xl border-gray-200">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-[10px] bg-[#030213] flex items-center justify-center text-white font-extrabold text-sm tracking-wide">
+      <Card className="w-full max-w-[420px] bg-white border border-[#e5e7eb] rounded-xl shadow-[0_20px_70px_rgba(3,2,19,0.08)] p-7">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-9 h-9 rounded-[10px] bg-[#030213] grid place-items-center text-white font-extrabold text-sm tracking-wide">
             AI
           </div>
           <div>
@@ -62,11 +65,12 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
           <Input
             id="email"
             type="email"
+            name="email"
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-3 py-3 rounded-xl border border-gray-200 bg-[#f3f3f5] text-base transition-all focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[rgba(165,180,252,0.35)] focus:outline-none"
+            className="w-full p-3 rounded-xl border border-[#e5e7eb] bg-[#f3f3f5] text-base transition-all duration-150 focus:outline-none focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[rgba(165,180,252,0.35)]"
           />
 
           <Label htmlFor="password" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
@@ -75,21 +79,18 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
           <Input
             id="password"
             type="password"
+            name="password"
             placeholder="Enter password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-3 py-3 rounded-xl border border-gray-200 bg-[#f3f3f5] text-base transition-all focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[rgba(165,180,252,0.35)] focus:outline-none"
+            className="w-full p-3 rounded-xl border border-[#e5e7eb] bg-[#f3f3f5] text-base transition-all duration-150 focus:outline-none focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[rgba(165,180,252,0.35)]"
           />
-
-          {error && (
-            <p className="mt-3 text-[#b91c1c] font-semibold text-sm">{error}</p>
-          )}
 
           <Button
             type="submit"
             disabled={loading}
-            className="w-full mt-4.5 py-3.5 px-3.5 bg-[#030213] text-white rounded-xl font-bold text-base hover:bg-[#11112a] transition-all active:translate-y-[1px] disabled:opacity-50"
+            className="mt-[18px] w-full py-[13px] px-3.5 bg-[#030213] text-white border-none rounded-xl font-bold text-base cursor-pointer transition-all duration-150 hover:bg-[#11112a] active:translate-y-[1px] disabled:opacity-50"
           >
             {loading ? t.common.loading : t.auth.signIn}
           </Button>
