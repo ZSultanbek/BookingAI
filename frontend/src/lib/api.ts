@@ -672,3 +672,34 @@ export async function deleteReview(reviewId: number): Promise<void> {
     throw new Error(errorData.error || "Failed to delete review");
   }
 }
+
+/* =========================
+   Property Evaluation
+========================= */
+
+export interface PropertyEvaluation {
+  property_id: number;
+  property_name: string;
+  property_location: string;
+  evaluation: {
+    total_reviews: number;
+    average_rating: number;
+    evaluation: string;
+    generated_at: string;
+  };
+  updated_at: string;
+}
+
+export async function getPropertyEvaluation(
+  propertyId: number
+): Promise<PropertyEvaluation> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/properties/${propertyId}/evaluation/`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch property evaluation: ${response.status}`);
+  }
+
+  return response.json();
+}
