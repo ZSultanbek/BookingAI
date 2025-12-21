@@ -18,12 +18,15 @@ import { toast } from "sonner";
 import { logout, getCurrentUser, savePreferences, updateProfile } from "../lib/api";
 import { Textarea } from "../components/ui/textarea";
 import { Input } from "../components/ui/input";
+import { useLanguage } from "../contexts/LanguageContext";
+import { Languages } from "lucide-react";
 
 interface PreferencesPageProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
 export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
+  const { language, setLanguage, t } = useLanguage();
   const [priceRange, setPriceRange] = useState([100, 500]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([
     "Free WiFi",
@@ -286,12 +289,12 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
             <Settings className="w-12 h-12" />
             <div>
               <h1 className="text-5xl mb-2">
-                {userRole === "host" ? "Your Profile" : "Your Preferences"}
+                {userRole === "host" ? t.preferences.title.replace("Preferences", "Profile") : t.preferences.title}
               </h1>
               <p className="text-xl text-white/90">
                 {userRole === "host"
                   ? "Manage your account settings and profile information"
-                  : "Customize your experience to get better AI recommendations"}
+                  : t.preferences.subtitle}
               </p>
             </div>
           </div>
@@ -308,14 +311,8 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg text-gray-900 mb-2">
-                    Personalize Your Experience
-                  </h3>
-                  <p className="text-gray-700">
-                    The more we know about your preferences, the better our AI can
-                    recommend hotels that match your style. Your preferences are
-                    stored locally and used only to improve your recommendations.
-                  </p>
+                  <h3 className="text-lg text-gray-900 mb-2">{t.preferences.title}</h3>
+                  <p className="text-gray-700">{t.preferences.subtitle}</p>
                 </div>
               </div>
             </Card>
@@ -323,21 +320,41 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
             {/* Current Preference Summary */}
             {preferenceText && (
               <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Your Preference Summary
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.preferences.preferenceSummary}</h3>
                 <p className="text-gray-700">{preferenceText}</p>
               </Card>
             )}
 
             <div className="space-y-8">
+              {/* Language Selection */}
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Languages className="w-6 h-6 text-blue-600" />
+                  <h2 className="text-2xl text-gray-900">{t.preferences.language}</h2>
+                </div>
+                <div>
+                  <Label className="mb-3 block">{t.preferences.selectLanguage}</Label>
+                  <Select
+                    value={language}
+                    onValueChange={(value: "en" | "ru" | "kk") => setLanguage(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">{t.preferences.english}</SelectItem>
+                      <SelectItem value="ru">{t.preferences.russian}</SelectItem>
+                      <SelectItem value="kk">{t.preferences.kazakh}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </Card>
+
           {/* Price Range */}
           <Card className="p-6">
-            <h2 className="text-2xl text-gray-900 mb-4">Budget</h2>
+      <h2 className="text-2xl text-gray-900 mb-4">{t.preferences.budget}</h2>
             <div>
-              <Label className="mb-4 block">
-                Preferred price range per night
-              </Label>
+              <Label className="mb-4 block">{t.preferences.priceRange}</Label>
               <Slider
                 value={priceRange}
                 onValueChange={setPriceRange}
@@ -355,17 +372,15 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
 
           {/* Travel Purpose */}
           <Card className="p-6">
-            <h2 className="text-2xl text-gray-900 mb-4">Travel Purpose</h2>
+            <h2 className="text-2xl text-gray-900 mb-4">{t.preferences.travelPurpose}</h2>
             <RadioGroup value={travelPurpose} onValueChange={setTravelPurpose}>
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
                   <RadioGroupItem value="leisure" id="leisure" />
                   <Label htmlFor="leisure" className="cursor-pointer flex-1">
                     <div>
-                      <p className="text-gray-900">Leisure & Vacation</p>
-                      <p className="text-sm text-gray-600">
-                        Relaxation and enjoyment
-                      </p>
+                        <p className="text-gray-900">{t.preferences.travelPurposes.leisureTitle}</p>
+                        <p className="text-sm text-gray-600">{t.preferences.travelPurposes.leisureDesc}</p>
                     </div>
                   </Label>
                 </div>
@@ -373,10 +388,8 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   <RadioGroupItem value="business" id="business" />
                   <Label htmlFor="business" className="cursor-pointer flex-1">
                     <div>
-                      <p className="text-gray-900">Business Travel</p>
-                      <p className="text-sm text-gray-600">
-                        Work-related trips
-                      </p>
+                        <p className="text-gray-900">{t.preferences.travelPurposes.businessTitle}</p>
+                        <p className="text-sm text-gray-600">{t.preferences.travelPurposes.businessDesc}</p>
                     </div>
                   </Label>
                 </div>
@@ -384,10 +397,8 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   <RadioGroupItem value="family" id="family" />
                   <Label htmlFor="family" className="cursor-pointer flex-1">
                     <div>
-                      <p className="text-gray-900">Family Vacation</p>
-                      <p className="text-sm text-gray-600">
-                        Traveling with family
-                      </p>
+                        <p className="text-gray-900">{t.preferences.travelPurposes.familyTitle}</p>
+                        <p className="text-sm text-gray-600">{t.preferences.travelPurposes.familyDesc}</p>
                     </div>
                   </Label>
                 </div>
@@ -395,10 +406,8 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   <RadioGroupItem value="adventure" id="adventure" />
                   <Label htmlFor="adventure" className="cursor-pointer flex-1">
                     <div>
-                      <p className="text-gray-900">Adventure & Exploration</p>
-                      <p className="text-sm text-gray-600">
-                        Outdoor activities and discovery
-                      </p>
+                        <p className="text-gray-900">{t.preferences.travelPurposes.adventureTitle}</p>
+                        <p className="text-sm text-gray-600">{t.preferences.travelPurposes.adventureDesc}</p>
                     </div>
                   </Label>
                 </div>
@@ -408,9 +417,9 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
 
           {/* Location Preference */}
           <Card className="p-6">
-            <h2 className="text-2xl text-gray-900 mb-4">Location Preference</h2>
+            <h2 className="text-2xl text-gray-900 mb-4">{t.preferences.locationPreference}</h2>
             <div>
-              <Label className="mb-3 block">Where do you prefer to stay?</Label>
+              <Label className="mb-3 block">{t.preferences.wherePreferStay}</Label>
               <Select
                 value={preferredLocation}
                 onValueChange={setPreferredLocation}
@@ -434,10 +443,8 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
 
           {/* Amenities */}
           <Card className="p-6">
-            <h2 className="text-2xl text-gray-900 mb-4">Preferred Amenities</h2>
-            <p className="text-gray-600 mb-4">
-              Select all amenities that are important to you
-            </p>
+            <h2 className="text-2xl text-gray-900 mb-4">{t.preferences.amenities}</h2>
+            <p className="text-gray-600 mb-4">{t.preferences.selectAmenities}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {amenitiesList.map((amenity) => (
                 <div
@@ -459,9 +466,7 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
 
           {/* Room Type Preferences */}
           <Card className="p-6">
-            <h2 className="text-2xl text-gray-900 mb-4">
-              Room Type Preferences
-            </h2>
+            <h2 className="text-2xl text-gray-900 mb-4">{t.preferences.roomTypes}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 "King Bed",
@@ -497,14 +502,14 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
                   disabled={isSaving || userRole !== "guest"}
                 >
                   <Save className="w-5 h-5 mr-2" />
-                  {isSaving ? "Saving..." : "Save Preferences"}
+                  {isSaving ? t.common.loading : t.preferences.savePreferences}
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
                   onClick={() => onNavigate("home")}
                 >
-                  Cancel
+                  {t.common.cancel}
                 </Button>
                 <Button
                   variant="ghost"
@@ -520,21 +525,11 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
 
             {/* Tips */}
             <Card className="p-6 mt-8">
-              <h3 className="text-lg text-gray-900 mb-3">
-                💡 Tips for Better Recommendations
-              </h3>
+              <h3 className="text-lg text-gray-900 mb-3">💡 {t.preferences.tipsHeading}</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>
-                  • Update your preferences regularly to reflect your changing needs
-                </li>
-                <li>
-                  • The more specific you are, the better our AI can match you with
-                  hotels
-                </li>
-                <li>• Like hotels you're interested in to help train the AI</li>
-                <li>
-                  • Your preferences are only stored in your browser for privacy
-                </li>
+                {t.preferences.tips.map((tip, idx) => (
+                  <li key={idx}>• {tip}</li>
+                ))}
               </ul>
             </Card>
           </>
@@ -558,6 +553,29 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
             </Card>
 
             <div className="space-y-8">
+              {/* Language Selection */}
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Languages className="w-6 h-6 text-blue-600" />
+                  <h2 className="text-2xl text-gray-900">{t.preferences.language}</h2>
+                </div>
+                <div>
+                  <Label className="mb-3 block">{t.preferences.selectLanguage}</Label>
+                  <Select
+                    value={language}
+                    onValueChange={(value: "en" | "ru" | "kk") => setLanguage(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">{t.preferences.english}</SelectItem>
+                      <SelectItem value="ru">{t.preferences.russian}</SelectItem>
+                      <SelectItem value="kk">{t.preferences.kazakh}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </Card>
               {/* Name */}
               <Card className="p-6">
                 <h2 className="text-2xl text-gray-900 mb-4">Name</h2>

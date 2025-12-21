@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Search, MapPin, Calendar, Users, Sparkles, TrendingUp } from 'lucide-react';
+import { useLanguage } from "../contexts/LanguageContext";
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
@@ -22,6 +23,7 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     async function fetchHotels() {
@@ -55,11 +57,9 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
           <div className="text-center text-white mb-8">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Sparkles className="w-8 h-8" />
-              <h1 className="text-5xl">Find Your Perfect Stay with AI</h1>
+              <h1 className="text-5xl">{t.home.title}</h1>
             </div>
-            <p className="text-xl text-white/90">
-              Personalized hotel recommendations powered by artificial intelligence
-            </p>
+            <p className="text-xl text-white/90">{t.home.subtitle}</p>
           </div>
 
           {/* Search Box */}
@@ -70,7 +70,7 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
-                    placeholder="Where to?"
+                    placeholder={t.home.whereTo}
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
                     className="pl-10"
@@ -121,7 +121,7 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
             
             <Button onClick={handleSearch} className="w-full mt-4 h-12" size="lg">
               <Search className="w-5 h-5 mr-2" />
-              Search Hotels
+              {t.home.searchHotels}
             </Button>
           </Card>
         </div>
@@ -150,12 +150,12 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-3xl text-gray-900">AI Recommendations for You</h2>
-                <p className="text-gray-600">Personalized picks based on your preferences</p>
+                <h2 className="text-3xl text-gray-900">{t.home.aiRecommendations}</h2>
+                <p className="text-gray-600">{t.home.aiRecommendationsSubtitle}</p>
               </div>
             </div>
             <Button variant="outline" onClick={() => onNavigate('ai-recommendations')}>
-              View All
+              {t.home.viewAll}
             </Button>
           </div>
           
@@ -172,7 +172,7 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
             ))}
           </div>
               ) : (
-                <p className="text-gray-600">No AI recommendations available yet.</p>
+                <p className="text-gray-600">{t.home.noAIRecommendations}</p>
               )}
         </div>
 
@@ -182,8 +182,8 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
             <div className="flex items-center gap-3">
               <TrendingUp className="w-8 h-8 text-blue-600" />
               <div>
-                <h2 className="text-3xl text-gray-900">Trending Destinations</h2>
-                <p className="text-gray-600">Most popular places this month</p>
+                <h2 className="text-3xl text-gray-900">{t.home.trendingDestinations}</h2>
+                <p className="text-gray-600">{t.home.trendingSubtitle}</p>
               </div>
             </div>
             <Button variant="outline" onClick={() => onNavigate('destinations')}>
@@ -204,7 +204,7 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
             ))}
           </div>
               ) : (
-                <p className="text-gray-600">No hotels available.</p>
+                <p className="text-gray-600">{t.home.noHotelsAvailable}</p>
               )}
         </div>
           </>
@@ -216,30 +216,24 @@ export function HomePage({ onNavigate, favorites, onToggleFavorite }: HomePagePr
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-8 h-8 text-blue-600" />
             </div>
-            <h3 className="text-xl text-gray-900 mb-2">AI-Powered Matching</h3>
-            <p className="text-gray-600">
-              Our AI learns your preferences to suggest the perfect hotels for you
-            </p>
+            <h3 className="text-xl text-gray-900 mb-2">{t.home.features.aiPoweredMatchingTitle}</h3>
+            <p className="text-gray-600">{t.home.features.aiPoweredMatchingDesc}</p>
           </Card>
           
           <Card className="p-6 text-center">
             <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="w-8 h-8 text-purple-600" />
             </div>
-            <h3 className="text-xl text-gray-900 mb-2">Smart Search</h3>
-            <p className="text-gray-600">
-              Advanced filters and AI recommendations make finding hotels effortless
-            </p>
+            <h3 className="text-xl text-gray-900 mb-2">{t.home.features.smartSearchTitle}</h3>
+            <p className="text-gray-600">{t.home.features.smartSearchDesc}</p>
           </Card>
           
           <Card className="p-6 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <TrendingUp className="w-8 h-8 text-green-600" />
             </div>
-            <h3 className="text-xl text-gray-900 mb-2">Best Prices</h3>
-            <p className="text-gray-600">
-              AI analyzes millions of prices to ensure you get the best deal
-            </p>
+            <h3 className="text-xl text-gray-900 mb-2">{t.home.features.bestPricesTitle}</h3>
+            <p className="text-gray-600">{t.home.features.bestPricesDesc}</p>
           </Card>
         </div>
       </div>

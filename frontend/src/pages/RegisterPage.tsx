@@ -12,12 +12,14 @@ import {
 } from '../components/ui/select';
 import { register } from '../lib/api';
 import { toast } from 'sonner';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface RegisterPageProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
 export function RegisterPage({ onNavigate }: RegisterPageProps) {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -73,14 +75,14 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
             AI
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 m-0">Create your account</h1>
+            <h1 className="text-xl font-bold text-gray-900 m-0">{t.auth.createAccount}</h1>
             <p className="text-[0.98rem] text-gray-500 mt-1 mb-0">Join BookingAI to personalize your stays.</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-5">
           <Label htmlFor="email" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
-            Email
+            {t.auth.email}
           </Label>
           <Input
             id="email"
@@ -93,7 +95,7 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
           />
 
           <Label htmlFor="name" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
-            Name
+            {t.auth.name}
           </Label>
           <Input
             id="name"
@@ -106,7 +108,7 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
           />
 
           <Label htmlFor="password" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
-            Password
+            {t.auth.password}
           </Label>
           <Input
             id="password"
@@ -119,7 +121,7 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
           />
 
           <Label htmlFor="password2" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
-            Confirm Password
+            {t.auth.confirmPassword}
           </Label>
           <Input
             id="password2"
@@ -132,7 +134,7 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
           />
 
           <Label htmlFor="user_type" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
-            Account Type
+            {t.auth.accountType}
           </Label>
           <Select value={userType} onValueChange={(value: 'guest' | 'host') => setUserType(value)}>
             <SelectTrigger
@@ -142,8 +144,8 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="guest">Guest</SelectItem>
-              <SelectItem value="host">Host</SelectItem>
+              <SelectItem value="guest">{t.auth.guest}</SelectItem>
+              <SelectItem value="host">{t.auth.host}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -156,17 +158,17 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
             disabled={loading}
             className="w-full mt-4.5 py-3.5 px-3.5 bg-[#030213] text-white rounded-xl font-bold text-base hover:bg-[#11112a] transition-all active:translate-y-[1px] disabled:opacity-50"
           >
-            {loading ? 'Creating account...' : 'Create account'}
+            {loading ? t.common.loading : t.auth.createAccount}
           </Button>
         </form>
 
         <div className="mt-4.5 text-center text-gray-500 text-[0.95rem]">
-          <span>Already have an account?{' '}
+          <span>{t.auth.alreadyHaveAccount}{' '}
             <button
               onClick={() => onNavigate('login')}
               className="text-[#030213] font-bold no-underline hover:underline cursor-pointer bg-transparent border-0 p-0"
             >
-              Sign in
+              {t.auth.signInHere}
             </button>
           </span>
         </div>

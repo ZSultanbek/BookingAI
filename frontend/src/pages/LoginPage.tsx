@@ -5,12 +5,14 @@ import { Card } from '../components/ui/card';
 import { Label } from '../components/ui/label';
 import { login } from '../lib/api';
 import { toast } from 'sonner';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LoginPageProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
 export function LoginPage({ onNavigate }: LoginPageProps) {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,14 +50,14 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
             AI
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 m-0">Welcome back</h1>
+            <h1 className="text-xl font-bold text-gray-900 m-0">{t.auth.welcomeBack}</h1>
             <p className="text-[0.98rem] text-gray-500 mt-1 mb-0">Sign in to continue your booking journey.</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-5">
           <Label htmlFor="email" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
-            Email
+            {t.auth.email}
           </Label>
           <Input
             id="email"
@@ -68,7 +70,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
           />
 
           <Label htmlFor="password" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
-            Password
+            {t.auth.password}
           </Label>
           <Input
             id="password"
@@ -89,17 +91,17 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
             disabled={loading}
             className="w-full mt-4.5 py-3.5 px-3.5 bg-[#030213] text-white rounded-xl font-bold text-base hover:bg-[#11112a] transition-all active:translate-y-[1px] disabled:opacity-50"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? t.common.loading : t.auth.signIn}
           </Button>
         </form>
 
         <div className="mt-4.5 text-center text-gray-500 text-[0.95rem]">
-          <span>Need an account?{' '}
+          <span>{t.auth.needAccount}{' '}
             <button
               onClick={() => onNavigate('register')}
               className="text-[#030213] font-bold no-underline hover:underline cursor-pointer bg-transparent border-0 p-0"
             >
-              Create one
+              {t.auth.createOne}
             </button>
           </span>
         </div>

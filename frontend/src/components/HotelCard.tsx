@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from "../contexts/LanguageContext";
 import { Hotel } from '../types';
 import { Star, MapPin, Heart, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
@@ -13,6 +14,7 @@ interface HotelCardProps {
 }
 
 export function HotelCard({ hotel, onViewDetails, isFavorite, onToggleFavorite }: HotelCardProps) {
+  const { t } = useLanguage();
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer group">
       <div className="relative h-64">
@@ -24,7 +26,7 @@ export function HotelCard({ hotel, onViewDetails, isFavorite, onToggleFavorite }
         {hotel.aiScore >= 85 && (
           <div className="absolute top-3 left-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1 rounded-full flex items-center gap-1.5">
             <Sparkles className="w-4 h-4" />
-            <span className="text-sm">AI Recommended</span>
+            <span className="text-sm">{t.search.aiRecommended}</span>
           </div>
         )}
         {onToggleFavorite && (
@@ -42,7 +44,7 @@ export function HotelCard({ hotel, onViewDetails, isFavorite, onToggleFavorite }
         )}
         <div className="absolute bottom-3 right-3 bg-white px-3 py-1.5 rounded-lg shadow-md">
           <span className="text-gray-900">${hotel.price}</span>
-          <span className="text-gray-500 text-sm">/night</span>
+          <span className="text-gray-500 text-sm">/{t.common.perNight}</span>
         </div>
       </div>
       
@@ -81,7 +83,7 @@ export function HotelCard({ hotel, onViewDetails, isFavorite, onToggleFavorite }
         </div>
         
         <Button onClick={() => onViewDetails(hotel.id)} className="w-full">
-          View Details
+          {t.common.viewDetails}
         </Button>
       </div>
     </div>
