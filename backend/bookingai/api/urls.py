@@ -12,7 +12,11 @@ from .views import (
     host_room_create,
     host_room_detail,
     guest_favourites,
-    remove_favourite
+    remove_favourite,
+    create_booking,
+    guest_bookings,
+    create_review,
+    review_detail
 )
 from api import views
 
@@ -31,4 +35,9 @@ urlpatterns = [
     # Guest favourites
     path("guest/favourites/", guest_favourites, name="guest_favourites"),
     path("guest/favourites/<int:favourite_id>/", remove_favourite, name="remove_favourite"),
+    # Guest bookings and reviews
+    path("guest/bookings/create/", create_booking, name="create_booking"),
+    path("guest/bookings/", guest_bookings, name="guest_bookings"),
+    path("guest/bookings/<int:booking_id>/review/", create_review, name="create_review"),
+    path("guest/reviews/<int:review_id>/", review_detail, name="review_detail"),
 ]

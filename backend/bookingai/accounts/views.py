@@ -159,6 +159,22 @@ def api_register(request):
     if User.objects.filter(email=email).exists():
         return JsonResponse({"error": "Email already registered"}, status=400)
 
+    if len(password) < 8:
+        return JsonResponse({"error": "Password must be at least 8 characters long"}, status=400)
+
+    f = 0
+    for char in password:
+        if char >= '0' and char <= '9':
+            f |= 1
+        if char in ['.', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', '=', '+']:
+            f |= 2
+        if (char >= 'A' and char <= 'Z'):
+            f |= 4
+        if (char >= 'a' and char <= 'z'):
+            f |= 8
+
+    if f != 15:
+        return JsonResponse({"error": "Password must contain at least one digit, one special character, one uppercase letter, and one lowercase letter"}, status=400)
     # Create user
     user = User.objects.create_user(
         email=email,

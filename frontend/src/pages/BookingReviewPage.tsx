@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Calendar, Users, CreditCard, Shield } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Separator } from '../components/ui/separator';
-import { getProperty } from '../lib/api';
-import { Hotel } from '../types';
-import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import React, { useState, useEffect } from "react";
+import { ChevronLeft, Calendar, Users, CreditCard, Shield } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Separator } from "../components/ui/separator";
+import { getProperty, createBooking } from "../lib/api";
+import { Hotel } from "../types";
+import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { toast } from "sonner";
 
 interface BookingReviewPageProps {
   hotelId: string;
@@ -15,10 +16,19 @@ interface BookingReviewPageProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
-export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReviewPageProps) {
+export function BookingReviewPage({
+  hotelId,
+  roomId,
+  onNavigate,
+}: BookingReviewPageProps) {
   const [hotel, setHotel] = useState<Hotel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bookingInProgress, setBookingInProgress] = useState(false);
+
+  // Mock dates for now - in real app, these would come from search params
+  const checkIn = "2025-11-15";
+  const checkOut = "2025-11-18";
 
   useEffect(() => {
     async function fetchHotel() {
@@ -27,8 +37,8 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
         const propertyData = await getProperty(hotelId);
         setHotel(propertyData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load hotel');
-        console.error('Error fetching hotel:', err);
+        setError(err instanceof Error ? err.message : "Failed to load hotel");
+        console.error("Error fetching hotel:", err);
       } finally {
         setLoading(false);
       }
@@ -36,7 +46,7 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
     fetchHotel();
   }, [hotelId]);
 
-  const room = hotel?.rooms.find(r => r.id === roomId);
+  const room = hotel?.rooms.find((r) => r.id === roomId);
 
   if (loading) {
     return (
@@ -52,15 +62,38 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl text-gray-900 mb-2">{error || 'Booking details not found'}</h2>
-          <Button onClick={() => onNavigate('home')}>Return to Home</Button>
+          <h2 className="text-2xl text-gray-900 mb-2">
+            {error || "Booking details not found"}
+          </h2>
+          <Button onClick={() => onNavigate("home")}>Return to Home</Button>
         </div>
       </div>
     );
   }
 
-  const handleConfirmBooking = () => {
-    onNavigate('booking-confirmation', { hotelId, roomId });
+  const handleConfirmBooking = async () => {
+    if (!room) return;
+
+    setBookingInProgress(true);
+    try {
+      await createBooking(Number(roomId), checkIn, checkOut);
+      toast.success("Booking created successfully!");
+      onNavigate("booking-confirmation", { hotelId, roomId });
+    } catch (error: any) {
+      console.error("Error creating booking:", error);
+
+      if (
+        error.message?.includes("401") ||
+        error.message?.includes("Authentication required")
+      ) {
+        toast.error("Please log in to complete your booking");
+        onNavigate("login");
+      } else {
+        toast.error(error.message || "Failed to create booking");
+      }
+    } finally {
+      setBookingInProgress(false);
+    }
   };
 
   const nights = 3;
@@ -73,7 +106,11 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Button variant="ghost" onClick={() => onNavigate('room-selection', { hotelId })} className="mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => onNavigate("room-selection", { hotelId })}
+            className="mb-4"
+          >
             <ChevronLeft className="w-4 h-4 mr-2" />
             Back to Room Selection
           </Button>
@@ -87,7 +124,7 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
             {/* Booking Details */}
             <Card className="p-6">
               <h2 className="text-2xl text-gray-900 mb-4">Booking Details</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="flex items-start gap-3">
                   <Calendar className="w-5 h-5 text-gray-600 mt-1" />
@@ -119,7 +156,7 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
             {/* Guest Information */}
             <Card className="p-6">
               <h2 className="text-2xl text-gray-900 mb-4">Guest Information</h2>
-              
+
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -131,15 +168,23 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
                     <Input id="lastName" placeholder="Doe" />
                   </div>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="john.doe@example.com" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="john.doe@example.com"
+                  />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" type="tel" placeholder="+1 (555) 123-4567" />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+1 (555) 123-4567"
+                  />
                 </div>
 
                 <div>
@@ -160,18 +205,18 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
                 <CreditCard className="w-6 h-6" />
                 Payment Information
               </h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="cardName">Cardholder Name</Label>
                   <Input id="cardName" placeholder="John Doe" />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="cardNumber">Card Number</Label>
                   <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="expiry">Expiry Date</Label>
@@ -188,7 +233,9 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
                 <Shield className="w-5 h-5 text-green-600 mt-0.5" />
                 <div>
                   <p className="text-sm text-green-900">Secure Payment</p>
-                  <p className="text-sm text-green-700">Your payment information is encrypted and secure</p>
+                  <p className="text-sm text-green-700">
+                    Your payment information is encrypted and secure
+                  </p>
                 </div>
               </div>
             </Card>
@@ -198,7 +245,7 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
           <div className="lg:col-span-1">
             <Card className="p-6 sticky top-24">
               <h2 className="text-xl text-gray-900 mb-4">Booking Summary</h2>
-              
+
               <div className="mb-4">
                 <div className="relative h-32 rounded-lg overflow-hidden mb-3">
                   <ImageWithFallback
@@ -208,7 +255,9 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
                   />
                 </div>
                 <h3 className="text-lg text-gray-900">{hotel.name}</h3>
-                <p className="text-sm text-gray-600">{hotel.location}, {hotel.city}</p>
+                <p className="text-sm text-gray-600">
+                  {hotel.location}, {hotel.city}
+                </p>
               </div>
 
               <Separator className="my-4" />
@@ -232,7 +281,9 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
 
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">${room.price} × {nights} nights</span>
+                  <span className="text-gray-600">
+                    ${room.price} × {nights} nights
+                  </span>
                   <span className="text-gray-900">${roomTotal}</span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -252,8 +303,12 @@ export function BookingReviewPage({ hotelId, roomId, onNavigate }: BookingReview
                 <span className="text-2xl text-gray-900">${total}</span>
               </div>
 
-              <Button onClick={handleConfirmBooking} className="w-full h-12">
-                Confirm Booking
+              <Button
+                onClick={handleConfirmBooking}
+                className="w-full h-12"
+                disabled={bookingInProgress}
+              >
+                {bookingInProgress ? "Creating Booking..." : "Confirm Booking"}
               </Button>
 
               <p className="text-xs text-gray-600 text-center mt-4">

@@ -520,3 +520,155 @@ export async function removeFromFavourites(favouriteId: number): Promise<void> {
     throw new Error(errorData.error || "Failed to remove from favourites");
   }
 }
+
+/* =========================
+   Bookings and Reviews
+========================= */
+
+export interface Booking {
+  booking_id: number;
+  room: {
+    room_id: number;
+    title: string;
+    price_per_night: number;
+  };
+  property: {
+    property_id: number;
+    name: string;
+    location: string;
+  };
+  check_in: string;
+  check_out: string;
+  total_cost: number;
+  status: string;
+  created_at: string;
+  has_review: boolean;
+}
+
+export interface Review {
+  review_id: number;
+  booking_id?: number;
+  rating: number;
+  comment: string;
+  ai_accuracy_feedback: string;
+  created_at: string;
+}
+
+export async function createBooking(
+  roomId: number,
+  checkIn: string,
+  checkOut: string
+): Promise<Booking> {
+  const response = await fetch(`${API_BASE_URL}/api/guest/bookings/create/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      room_id: roomId,
+      check_in: checkIn,
+      check_out: checkOut,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to create booking");
+  }
+
+  const data = await response.json();
+  return data.booking;
+}
+
+export async function getGuestBookings(): Promise<Booking[]> {
+  const response = await fetch(`${API_BASE_URL}/api/guest/bookings/`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch bookings: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.bookings;
+}
+
+export async function createReview(
+  bookingId: number,
+  rating: number,
+  comment: string,
+  aiAccuracyFeedback?: string
+): Promise<Review> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/guest/bookings/${bookingId}/review/`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        rating,
+        comment,
+        ai_accuracy_feedback: aiAccuracyFeedback || "",
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to create review");
+  }
+
+  const data = await response.json();
+  return data.review;
+}
+
+export async function updateReview(
+  reviewId: number,
+  rating: number,
+  comment: string,
+  aiAccuracyFeedback?: string
+): Promise<Review> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/guest/reviews/${reviewId}/`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        rating,
+        comment,
+        ai_accuracy_feedback: aiAccuracyFeedback || "",
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to update review");
+  }
+
+  const data = await response.json();
+  return data.review;
+}
+
+export async function deleteReview(reviewId: number): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/guest/reviews/${reviewId}/`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to delete review");
+  }
+}

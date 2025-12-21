@@ -798,3 +798,245 @@ def remove_favourite(request, favourite_id: int):
         return JsonResponse({"error": "Favourite not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+# ----------------------------
+#  BOOKINGS
+# ----------------------------
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_booking(request):
+    """Create a new booking for a guest."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+    
+    try:
+        guest_profile = request.user.guest_profile
+    except:
+        return JsonResponse({"error": "User is not a guest"}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        room_id = data.get("room_id")
+        check_in = data.get("check_in")
+        check_out = data.get("check_out")
+        
+        if not all([room_id, check_in, check_out]):
+            return JsonResponse({"error": "room_id, check_in, and check_out are required"}, status=400)
+        
+        # Parse dates
+        from datetime import datetime
+        check_in_date = datetime.fromisoformat(check_in.replace('Z', '+00:00')).date()
+        check_out_date = datetime.fromisoformat(check_out.replace('Z', '+00:00')).date()
+        
+        # Validate dates
+        if check_out_date <= check_in_date:
+            return JsonResponse({"error": "Check-out date must be after check-in date"}, status=400)
+        
+        # Get room
+        room = m.Room.objects.get(room_id=room_id)
+        
+        # Calculate total cost
+        num_nights = (check_out_date - check_in_date).days
+        total_cost = room.price_per_night * num_nights
+        
+        # Create booking
+        booking = m.Booking.objects.create(
+            guest=guest_profile,
+            room=room,
+            check_in=check_in_date,
+            check_out=check_out_date,
+            total_cost=total_cost,
+            status="confirmed"
+        )
+        
+        return JsonResponse({
+            "success": True,
+            "message": "Booking created successfully",
+            "booking": {
+                "booking_id": booking.booking_id,
+                "room_id": room.room_id,
+                "check_in": booking.check_in.isoformat(),
+                "check_out": booking.check_out.isoformat(),
+                "total_cost": float(booking.total_cost),
+                "status": booking.status,
+                "created_at": booking.created_at.isoformat()
+            }
+        }, status=201)
+    
+    except m.Room.DoesNotExist:
+        return JsonResponse({"error": "Room not found"}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+# ----------------------------
+#  REVIEWS
+# ----------------------------
+@csrf_exempt
+@require_http_methods(["GET"])
+def guest_bookings(request):
+    """Get all bookings for the authenticated guest."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+    
+    try:
+        guest_profile = request.user.guest_profile
+    except:
+        return JsonResponse({"error": "User is not a guest"}, status=403)
+    
+    bookings = m.Booking.objects.filter(guest=guest_profile).select_related('room__property').order_by('-created_at')
+    
+    bookings_data = []
+    for booking in bookings:
+        # Check if review exists
+        has_review = m.Review.objects.filter(booking=booking).exists()
+        
+        bookings_data.append({
+            "booking_id": booking.booking_id,
+            "room": {
+                "room_id": booking.room.room_id,
+                "title": booking.room.title,
+                "price_per_night": float(booking.room.price_per_night),
+            },
+            "property": {
+                "property_id": booking.room.property.property_id,
+                "name": booking.room.property.name,
+                "location": booking.room.property.location,
+            },
+            "check_in": booking.check_in.isoformat(),
+            "check_out": booking.check_out.isoformat(),
+            "total_cost": float(booking.total_cost),
+            "status": booking.status,
+            "created_at": booking.created_at.isoformat(),
+            "has_review": has_review
+        })
+    
+    return JsonResponse({"bookings": bookings_data}, status=200)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_review(request, booking_id: int):
+    """Create a review for a booking."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+    
+    try:
+        guest_profile = request.user.guest_profile
+    except:
+        return JsonResponse({"error": "User is not a guest"}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        rating = data.get("rating")
+        comment = data.get("comment", "")
+        ai_accuracy_feedback = data.get("ai_accuracy_feedback", "")
+        
+        if not rating or not isinstance(rating, int) or rating < 1 or rating > 5:
+            return JsonResponse({"error": "Rating must be an integer between 1 and 5"}, status=400)
+        
+        # Check if booking exists and belongs to the guest
+        booking = m.Booking.objects.get(booking_id=booking_id, guest=guest_profile)
+        
+        # Check if review already exists
+        if m.Review.objects.filter(booking=booking).exists():
+            return JsonResponse({"error": "Review already exists for this booking"}, status=400)
+        
+        # Create review
+        review = m.Review.objects.create(
+            booking=booking,
+            rating=rating,
+            comment=comment,
+            ai_accuracy_feedback=ai_accuracy_feedback
+        )
+        
+        return JsonResponse({
+            "success": True,
+            "message": "Review created successfully",
+            "review": {
+                "review_id": review.review_id,
+                "rating": review.rating,
+                "comment": review.comment,
+                "ai_accuracy_feedback": review.ai_accuracy_feedback,
+                "created_at": review.created_at.isoformat()
+            }
+        }, status=201)
+    
+    except m.Booking.DoesNotExist:
+        return JsonResponse({"error": "Booking not found"}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "PUT", "DELETE"])
+def review_detail(request, review_id: int):
+    """Get, update, or delete a specific review."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+    
+    try:
+        guest_profile = request.user.guest_profile
+    except:
+        return JsonResponse({"error": "User is not a guest"}, status=403)
+    
+    try:
+        review = m.Review.objects.select_related('booking').get(
+            review_id=review_id,
+            booking__guest=guest_profile
+        )
+    except m.Review.DoesNotExist:
+        return JsonResponse({"error": "Review not found"}, status=404)
+    
+    if request.method == "GET":
+        return JsonResponse({
+            "review": {
+                "review_id": review.review_id,
+                "booking_id": review.booking.booking_id,
+                "rating": review.rating,
+                "comment": review.comment,
+                "ai_accuracy_feedback": review.ai_accuracy_feedback,
+                "created_at": review.created_at.isoformat()
+            }
+        }, status=200)
+    
+    elif request.method == "PUT":
+        try:
+            data = json.loads(request.body)
+            rating = data.get("rating", review.rating)
+            comment = data.get("comment", review.comment)
+            ai_accuracy_feedback = data.get("ai_accuracy_feedback", review.ai_accuracy_feedback)
+            
+            if not isinstance(rating, int) or rating < 1 or rating > 5:
+                return JsonResponse({"error": "Rating must be an integer between 1 and 5"}, status=400)
+            
+            review.rating = rating
+            review.comment = comment
+            review.ai_accuracy_feedback = ai_accuracy_feedback
+            review.save()
+            
+            return JsonResponse({
+                "success": True,
+                "message": "Review updated successfully",
+                "review": {
+                    "review_id": review.review_id,
+                    "rating": review.rating,
+                    "comment": review.comment,
+                    "ai_accuracy_feedback": review.ai_accuracy_feedback,
+                    "created_at": review.created_at.isoformat()
+                }
+            }, status=200)
+        
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    elif request.method == "DELETE":
+        review.delete()
+        return JsonResponse({"success": True, "message": "Review deleted successfully"}, status=200)

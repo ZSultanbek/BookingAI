@@ -1,8 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Home, Search, Heart, Compass, Settings, MessageSquare, Map, Building2 } from 'lucide-react';
-import { Button } from './ui/button';
-import { getCurrentUser } from '../lib/api';
-import { useLanguage } from '../contexts/LanguageContext';
+import React, { useState, useEffect } from "react";
+import {
+  Home,
+  Search,
+  Heart,
+  Compass,
+  Settings,
+  MessageSquare,
+  Map,
+  Building2,
+  Calendar,
+} from "lucide-react";
+import { Button } from "./ui/button";
+import { getCurrentUser } from "../lib/api";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface NavigationProps {
   currentPage: string;
@@ -29,18 +39,22 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
   }, [currentPage]); // Re-check when page changes
 
   const navItems = [
-    { id: 'home', label: t.nav.home, icon: Home },
-    { id: 'search', label: t.nav.search, icon: Search },
-    { id: 'destinations', label: t.nav.destinations, icon: Compass },
-    { id: 'favorites', label: t.nav.favorites, icon: Heart },
-    { id: 'ai-chat', label: t.nav.aiAssistant, icon: MessageSquare },
+    { id: "home", label: t.nav.home, icon: Home },
+    { id: "search", label: t.nav.search, icon: Search },
+    { id: "destinations", label: t.nav.destinations, icon: Compass },
+    { id: "favorites", label: t.nav.favorites, icon: Heart },
+    { id: "my-bookings", label: "My Bookings", icon: Calendar },
+    { id: "ai-chat", label: t.nav.aiAssistant, icon: MessageSquare },
   ];
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('home')}>
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => onNavigate("home")}
+          >
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <Map className="w-6 h-6 text-white" />
             </div>
@@ -55,7 +69,7 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
               return (
                 <Button
                   key={item.id}
-                  variant={currentPage === item.id ? 'default' : 'ghost'}
+                  variant={currentPage === item.id ? "default" : "ghost"}
                   onClick={() => onNavigate(item.id)}
                   className="gap-2"
                 >
@@ -64,10 +78,12 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
                 </Button>
               );
             })}
-            {userRole === 'host' && (
+            {userRole === "host" && (
               <Button
-                variant={currentPage === 'host-properties' ? 'default' : 'ghost'}
-                onClick={() => onNavigate('host-properties')}
+                variant={
+                  currentPage === "host-properties" ? "default" : "ghost"
+                }
+                onClick={() => onNavigate("host-properties")}
                 className="gap-2"
               >
                 <Building2 className="w-4 h-4" />
@@ -75,8 +91,8 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
               </Button>
             )}
             <Button
-              variant={currentPage === 'preferences' ? 'default' : 'ghost'}
-              onClick={() => onNavigate('preferences')}
+              variant={currentPage === "preferences" ? "default" : "ghost"}
+              onClick={() => onNavigate("preferences")}
             >
               <Settings className="w-4 h-4" />
             </Button>
@@ -88,7 +104,7 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
               return (
                 <Button
                   key={item.id}
-                  variant={currentPage === item.id ? 'default' : 'ghost'}
+                  variant={currentPage === item.id ? "default" : "ghost"}
                   size="sm"
                   onClick={() => onNavigate(item.id)}
                 >

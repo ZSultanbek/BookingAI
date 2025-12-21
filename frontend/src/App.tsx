@@ -16,6 +16,7 @@ import { AIChatPage } from "./pages/AIChatPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { HostPropertiesPage } from "./pages/HostPropertiesPage";
+import { MyBookingsPage } from "./pages/MyBookingsPage";
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 import {
@@ -40,7 +41,8 @@ type Page =
   | "ai-chat"
   | "login"
   | "register"
-  | "host-properties";
+  | "host-properties"
+  | "my-bookings";
 
 interface PageData {
   hotelId?: string;
@@ -213,6 +215,9 @@ export default function App() {
 
       case "ai-chat":
         return <AIChatPage onNavigate={handleNavigate} />;
+
+      case "my-bookings":
+        return <MyBookingsPage onNavigate={handleNavigate} />;
 
       case "login":
         return <LoginPage onNavigate={handleNavigate} />;
