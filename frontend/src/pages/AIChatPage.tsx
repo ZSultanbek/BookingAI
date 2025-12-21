@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { aiChat, getProperties } from '../lib/api';
+import { aiChat, getProperties, getCurrentUser } from '../lib/api';
 import { Hotel } from '../types';
 
 interface AIChatPageProps {
@@ -22,6 +22,12 @@ interface Message {
 export function AIChatPage({ onNavigate }: AIChatPageProps) {
   const { t } = useLanguage();
 
+  // Encryption / storage constants
+  const STORAGE_KEY = 'ai_chat_storage_v1';
+  const KEY_STORAGE = 'ai_chat_key_v1';
+  const PBKDF2_ITERATIONS = 150000;
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -33,6 +39,8 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [cryptoKey, setCryptoKey] = useState<CryptoKey | null>(null);
+  const [usingPassphrase, setUsingPassphrase] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,6 +53,27 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
       }
     }
     fetchHotels();
+    // Initialize current user + encryption key & load stored messages
+    (async () => {
+      try {
+        // try to get current user; this endpoint uses session cookies
+        let uid: number | null = null;
+        try {
+          const me = await getCurrentUser();
+          if (me && me.user) {
+            uid = me.user.id;
+            setCurrentUserId(uid);
+          }
+        } catch (e) {
+          // not authenticated or failed -> proceed as anonymous
+        }
+
+        await ensureCryptoKey(uid);
+        await loadMessagesFromStorage(uid);
+      } catch (err) {
+        console.warn('Could not initialize encrypted storage:', err);
+      }
+    })();
   }, []);
 
   const scrollToBottom = () => {
@@ -85,6 +114,166 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
       return "I'd be happy to help you find the perfect hotel! Could you tell me more about what you're looking for? For example: your destination, travel dates, budget, and what amenities are important to you. Or you can browse our AI-recommended hotels that match your preferences!";
     }
   };
+
+  // --- Encryption helpers and persistence ---
+  const bufToB64 = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const b64ToBuf = (b64: string) => {
+    const bin = atob(b64);
+    const len = bin.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  };
+  const getRandomBytes = (len: number) => {
+    const arr = new Uint8Array(len);
+    crypto.getRandomValues(arr);
+    return arr;
+  };
+
+  const storageKeyForUser = (uid?: number | null) => `${STORAGE_KEY}_user_${uid ?? currentUserId ?? 'anon'}`;
+  const keyStorageForUser = (uid?: number | null) => `${KEY_STORAGE}_user_${uid ?? currentUserId ?? 'anon'}`;
+
+  const importKeyFromRaw = async (rawBase64: string) => {
+    const raw = b64ToBuf(rawBase64);
+    return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  };
+
+  const exportKeyToRaw = async (key: CryptoKey) => {
+    const raw = await crypto.subtle.exportKey('raw', key);
+    return bufToB64(raw);
+  };
+
+  const deriveKeyFromPassphrase = async (passphrase: string, salt: BufferSource) => {
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey('raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+    return key;
+  };
+
+  const encryptWithKey = async (key: CryptoKey, data: string) => {
+    const iv = getRandomBytes(12);
+    const enc = new TextEncoder();
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(data));
+    return { iv: bufToB64(iv.buffer), data: bufToB64(ct) };
+  };
+
+  const decryptWithKey = async (key: CryptoKey, ivB64: string, dataB64: string) => {
+    const iv = new Uint8Array(b64ToBuf(ivB64));
+    const ct = b64ToBuf(dataB64);
+    const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return new TextDecoder().decode(dec);
+  };
+
+  const ensureCryptoKey = async (uid?: number | null) => {
+    const keyName = keyStorageForUser(uid);
+    const existingRaw = localStorage.getItem(keyName);
+    if (existingRaw) {
+      try {
+        const key = await importKeyFromRaw(existingRaw);
+        setCryptoKey(key);
+        setUsingPassphrase(false);
+        return key;
+      } catch (err) {
+        console.warn('Failed to import stored key, generating new one.', err);
+      }
+    }
+    const newKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+    const raw = await exportKeyToRaw(newKey);
+    try { localStorage.setItem(keyName, raw); } catch (e) { console.warn('Could not persist ai chat key', e); }
+    setCryptoKey(newKey);
+    setUsingPassphrase(false);
+    return newKey;
+  };
+
+  const saveMessagesToStorage = async (msgs: Message[], uid?: number | null) => {
+    if (!cryptoKey) return;
+    try {
+      const payload = JSON.stringify(msgs.map(m => ({ ...m, timestamp: m.timestamp.toISOString() })));
+      const encrypted = await encryptWithKey(cryptoKey, payload);
+      const stored = { mode: usingPassphrase ? 'passphrase' : 'key', iv: encrypted.iv, data: encrypted.data } as any;
+      localStorage.setItem(storageKeyForUser(uid), JSON.stringify(stored));
+    } catch (err) {
+      console.error('Failed to save encrypted messages:', err);
+    }
+  };
+
+  const loadMessagesFromStorage = async (uid?: number | null) => {
+    const raw = localStorage.getItem(storageKeyForUser(uid));
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.data || !parsed.iv) return;
+      if (parsed.mode === 'passphrase') {
+        const pass = window.prompt('Enter passphrase to decrypt your AI chat history (leave blank to skip):');
+        if (!pass) return;
+  const saltB64 = parsed.salt || localStorage.getItem(storageKeyForUser(uid) + '_salt');
+        if (!saltB64) return;
+  const saltBuf = b64ToBuf(saltB64);
+  const key = await deriveKeyFromPassphrase(pass, saltBuf);
+        const dec = await decryptWithKey(key, parsed.iv, parsed.data);
+        const objs = JSON.parse(dec) as any[];
+        const loaded = objs.map(o => ({ ...o, timestamp: new Date(o.timestamp) } as Message));
+        setMessages(prev => { const merged = [...loaded]; return merged.length ? merged : prev; });
+        setCryptoKey(key);
+        setUsingPassphrase(true);
+      } else {
+  const keyToUse = cryptoKey ?? await ensureCryptoKey(uid);
+        if (!keyToUse) return;
+        const dec = await decryptWithKey(keyToUse, parsed.iv, parsed.data);
+        const objs = JSON.parse(dec) as any[];
+        const loaded = objs.map(o => ({ ...o, timestamp: new Date(o.timestamp) } as Message));
+        setMessages(prev => { const merged = [...loaded]; return merged.length ? merged : prev; });
+      }
+    } catch (err) {
+      console.warn('Failed to load or decrypt stored messages:', err);
+    }
+  };
+
+  const secureWithPassphrase = async () => {
+    const pass = window.prompt('Choose a passphrase to protect your AI chat history (you will need it to decrypt later):');
+    if (!pass) return;
+    const passConfirm = window.prompt('Confirm passphrase:');
+    if (pass !== passConfirm) { alert('Passphrases do not match. Aborting.'); return; }
+    const salt = getRandomBytes(16);
+  const key = await deriveKeyFromPassphrase(pass, salt.buffer);
+    const payload = JSON.stringify(messages.map(m => ({ ...m, timestamp: m.timestamp.toISOString() })));
+    const encrypted = await encryptWithKey(key, payload);
+    const stored = { mode: 'passphrase', iv: encrypted.iv, data: encrypted.data } as any;
+    localStorage.setItem(storageKeyForUser(currentUserId), JSON.stringify(stored));
+    localStorage.setItem(storageKeyForUser(currentUserId) + '_salt', bufToB64(salt.buffer));
+    localStorage.removeItem(keyStorageForUser(currentUserId));
+    setCryptoKey(key);
+    setUsingPassphrase(true);
+    alert('Chat history secured with passphrase. Remember it — without it the history cannot be recovered.');
+  };
+
+  const clearHistory = () => {
+    if (!confirm('Clear saved AI chat history? This cannot be undone.')) return;
+  localStorage.removeItem(storageKeyForUser());
+  localStorage.removeItem(storageKeyForUser() + '_salt');
+    setMessages([
+      {
+        id: '1',
+        role: 'assistant',
+        content: t.aiChat.initialMessage,
+        timestamp: new Date()
+      }
+    ]);
+  };
+
+  // Save messages whenever they change
+  useEffect(() => {
+    (async () => {
+      if (!cryptoKey) return;
+      try { await saveMessagesToStorage(messages, currentUserId); } catch (e) { /* ignore */ }
+    })();
+  }, [messages, cryptoKey, usingPassphrase]);
 
   const preferences = {
   travel_reason: "leisure",
@@ -151,16 +340,23 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-              <MessageSquare className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl">{t.aiChat.title}</h1>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-sm text-white/90">{t.aiChat.onlineStatus}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                <MessageSquare className="w-6 h-6" />
               </div>
+              <div>
+                <h1 className="text-2xl">{t.aiChat.title}</h1>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-sm text-white/90">{t.aiChat.onlineStatus}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="text-sm" onClick={secureWithPassphrase}>{t.aiChat.secureHistory}</Button>
+              <Button variant="ghost" className="text-sm" onClick={clearHistory}>{t.aiChat.clearHistory}</Button>
             </div>
           </div>
         </div>

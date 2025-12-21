@@ -48,6 +48,11 @@ export interface Translations {
     needAccount: string;
     signInHere: string;
     createOne: string;
+    passwordMismatch: string;
+    fillRequired: string;
+    registrationSuccess: string;
+    loginSuccess: string;
+    invalidCredentials: string;
   };
 
   // Preferences
@@ -207,6 +212,8 @@ export interface Translations {
     updatePreferences: string;
     improveRecommendations: string;
     inputPlaceholder: string;
+    secureHistory: string;
+    clearHistory: string;
     poweredBy: string;
   };
 
@@ -261,6 +268,11 @@ const translations: Record<Language, Translations> = {
       needAccount: 'Need an account?',
       signInHere: 'Sign in',
       createOne: 'Create one',
+      passwordMismatch: 'Passwords do not match.',
+      fillRequired: 'Please fill in all required fields.',
+      registrationSuccess: 'Account created successfully!',
+      loginSuccess: 'Welcome back!',
+      invalidCredentials: 'Invalid email or password.'
     },
     preferences: {
       title: 'Your Preferences',
@@ -412,6 +424,8 @@ const translations: Record<Language, Translations> = {
       updatePreferences: 'Update Preferences',
       improveRecommendations: 'Improve recommendations',
       inputPlaceholder: 'Ask me anything about hotels or travel...',
+      secureHistory: 'Secure History',
+      clearHistory: 'Clear History',
       poweredBy: 'Powered by Gemini AI',
     },
     hotel: {
@@ -462,6 +476,11 @@ const translations: Record<Language, Translations> = {
       needAccount: 'Нужен аккаунт?',
       signInHere: 'Войти',
       createOne: 'Создать',
+      passwordMismatch: 'Пароли не совпадают.',
+      fillRequired: 'Пожалуйста, заполните все обязательные поля.',
+      registrationSuccess: 'Аккаунт успешно создан!',
+      loginSuccess: 'С возвращением!',
+      invalidCredentials: 'Неверный email или пароль.'
     },
     preferences: {
       title: 'Ваши настройки',
@@ -613,6 +632,8 @@ const translations: Record<Language, Translations> = {
       updatePreferences: 'Обновить настройки',
       improveRecommendations: 'Улучшить рекомендации',
       inputPlaceholder: 'Спросите меня о чем угодно по отелям или путешествиям...',
+      secureHistory: 'Защитить историю',
+      clearHistory: 'Очистить историю',
       poweredBy: 'Работает на Gemini AI',
     },
     hotel: {
@@ -663,6 +684,11 @@ const translations: Record<Language, Translations> = {
       needAccount: 'Есептік жазба керек пе?',
       signInHere: 'Кіру',
       createOne: 'Жасау',
+      passwordMismatch: 'Құпия сөздер сәйкес келмейді.',
+      fillRequired: 'Барлық міндетті өрістерді толтырыңыз.',
+      registrationSuccess: 'Тіркелгі сәтті құрылды!',
+      loginSuccess: 'Қайта қош келдіңіз!',
+      invalidCredentials: 'Қате электрондық пошта немесе құпия сөз.'
     },
     preferences: {
       title: 'Сіздің баптауларыңыз',
@@ -814,6 +840,8 @@ const translations: Record<Language, Translations> = {
       updatePreferences: 'Баптауларды жаңарту',
       improveRecommendations: 'Ұсыныстарды жақсарту',
       inputPlaceholder: 'Қонақүйлер немесе саяхат туралы кез келген нәрсені сұраңыз...',
+      secureHistory: 'Тарихты қорғау',
+      clearHistory: 'Тарихты тазалау',
       poweredBy: 'Gemini AI арқылы жұмыс істейді',
     },
     hotel: {
