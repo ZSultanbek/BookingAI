@@ -1,6 +1,7 @@
-import React from 'react';
-import { Home, Search, Heart, Compass, Settings, MessageSquare, Map } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Home, Search, Heart, Compass, Settings, MessageSquare, Map, Building2 } from 'lucide-react';
 import { Button } from './ui/button';
+import { getCurrentUser } from '../lib/api';
 
 interface NavigationProps {
   currentPage: string;
@@ -8,6 +9,23 @@ interface NavigationProps {
 }
 
 export function Navigation({ currentPage, onNavigate }: NavigationProps) {
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const response = await getCurrentUser();
+        if (response.authenticated && response.user) {
+          setUserRole(response.user.role);
+        }
+      } catch (err) {
+        // User not logged in or error
+        setUserRole(null);
+      }
+    };
+    checkUser();
+  }, [currentPage]); // Re-check when page changes
+
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'search', label: 'Search', icon: Search },
@@ -44,6 +62,16 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
                 </Button>
               );
             })}
+            {userRole === 'host' && (
+              <Button
+                variant={currentPage === 'host-properties' ? 'default' : 'ghost'}
+                onClick={() => onNavigate('host-properties')}
+                className="gap-2"
+              >
+                <Building2 className="w-4 h-4" />
+                Manage Properties
+              </Button>
+            )}
             <Button
               variant={currentPage === 'preferences' ? 'default' : 'ghost'}
               onClick={() => onNavigate('preferences')}

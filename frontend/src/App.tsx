@@ -13,6 +13,9 @@ import { PreferencesPage } from './pages/PreferencesPage';
 import { FavoritesPage } from './pages/FavoritesPage';
 import { CompareHotelsPage } from './pages/CompareHotelsPage';
 import { AIChatPage } from './pages/AIChatPage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { HostPropertiesPage } from './pages/HostPropertiesPage';
 import { Toaster } from './components/ui/sonner';
 
 type Page = 
@@ -28,7 +31,10 @@ type Page =
   | 'preferences'
   | 'favorites'
   | 'compare-hotels'
-  | 'ai-chat';
+  | 'ai-chat'
+  | 'login'
+  | 'register'
+  | 'host-properties';
 
 interface PageData {
   hotelId?: string;
@@ -155,6 +161,15 @@ export default function App() {
       case 'ai-chat':
         return <AIChatPage onNavigate={handleNavigate} />;
       
+      case 'login':
+        return <LoginPage onNavigate={handleNavigate} />;
+      
+      case 'register':
+        return <RegisterPage onNavigate={handleNavigate} />;
+      
+      case 'host-properties':
+        return <HostPropertiesPage onNavigate={handleNavigate} />;
+      
       default:
         return (
           <HomePage 
@@ -166,9 +181,11 @@ export default function App() {
     }
   };
 
+  const shouldShowNavigation = currentPage !== 'login' && currentPage !== 'register';
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
+      {shouldShowNavigation && <Navigation currentPage={currentPage} onNavigate={handleNavigate} />}
       {renderPage()}
       <Toaster />
     </div>

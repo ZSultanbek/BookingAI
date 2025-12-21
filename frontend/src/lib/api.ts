@@ -52,6 +52,7 @@ export interface MeResponse {
   user?: User;
   preferences?: Record<string, any>;
   travel_reason?: string;
+  bio?: string;
 }
 
 /* =========================
@@ -230,4 +231,226 @@ export async function savePreferences(
   }
 
   return response.json();
+}
+
+/* =========================
+   Profile
+========================= */
+
+export interface UpdateProfileData {
+  name?: string;
+  email?: string;
+  bio?: string;
+}
+
+export async function updateProfile(
+  profileData: UpdateProfileData
+): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/accounts/api/profile/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(profileData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to update profile");
+  }
+
+  return response.json();
+}
+
+/* =========================
+   Host Property Management
+========================= */
+
+export interface HostProperty {
+  id: number;
+  name: string;
+  location: string;
+  description: string;
+  amenities: string[];
+  price_per_night: number;
+  ai_verified_score: string;
+  rooms: HostRoom[];
+}
+
+export interface HostRoom {
+  id: number;
+  title: string;
+  price_per_night: number;
+  availability_status: "available" | "booked" | "unavailable";
+  photos_url: string;
+}
+
+export interface CreatePropertyData {
+  name: string;
+  location: string;
+  description: string;
+  price_per_night: number;
+  amenities: string[];
+}
+
+export interface UpdatePropertyData extends Partial<CreatePropertyData> {}
+
+export interface CreateRoomData {
+  title: string;
+  price_per_night: number;
+  availability_status?: "available" | "booked" | "unavailable";
+  photos_url?: string;
+}
+
+export interface UpdateRoomData extends Partial<CreateRoomData> {}
+
+export async function getHostProperties(): Promise<HostProperty[]> {
+  const response = await fetch(`${API_BASE_URL}/api/host/properties/`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to fetch properties");
+  }
+
+  const data = await response.json();
+  return data.properties;
+}
+
+export async function createProperty(
+  propertyData: CreatePropertyData
+): Promise<HostProperty> {
+  const response = await fetch(`${API_BASE_URL}/api/host/properties/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(propertyData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to create property");
+  }
+
+  const data = await response.json();
+  return data.property;
+}
+
+export async function updateProperty(
+  propertyId: number,
+  propertyData: UpdatePropertyData
+): Promise<HostProperty> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/host/properties/${propertyId}/`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(propertyData),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to update property");
+  }
+
+  const data = await response.json();
+  return data.property;
+}
+
+export async function deleteProperty(propertyId: number): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/host/properties/${propertyId}/`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to delete property");
+  }
+}
+
+export async function createRoom(
+  propertyId: number,
+  roomData: CreateRoomData
+): Promise<HostRoom> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/host/properties/${propertyId}/rooms/`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(roomData),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to create room");
+  }
+
+  const data = await response.json();
+  return data.room;
+}
+
+export async function updateRoom(
+  propertyId: number,
+  roomId: number,
+  roomData: UpdateRoomData
+): Promise<HostRoom> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/host/properties/${propertyId}/rooms/${roomId}/`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(roomData),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to update room");
+  }
+
+  const data = await response.json();
+  return data.room;
+}
+
+export async function deleteRoom(
+  propertyId: number,
+  roomId: number
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/host/properties/${propertyId}/rooms/${roomId}/`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(errorData.error || "Failed to delete room");
+  }
 }

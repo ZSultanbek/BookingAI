@@ -15,7 +15,9 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { toast } from "sonner";
-import { logout, getCurrentUser, savePreferences } from "../lib/api";
+import { logout, getCurrentUser, savePreferences, updateProfile } from "../lib/api";
+import { Textarea } from "../components/ui/textarea";
+import { Input } from "../components/ui/input";
 
 interface PreferencesPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -34,6 +36,13 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
   ]);
   const [preferenceText, setPreferenceText] = useState("");
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Host profile fields
+  const [hostName, setHostName] = useState("");
+  const [hostEmail, setHostEmail] = useState("");
+  const [hostBio, setHostBio] = useState("");
 
   // Check authentication on mount and load preferences
   useEffect(() => {
@@ -42,36 +51,55 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
         const response = await getCurrentUser();
         if (!response.authenticated) {
           toast.error("Please log in to access preferences");
-          window.location.href = "http://localhost:8000/accounts/login/";
+          onNavigate("login");
           return;
         }
 
-        // Load saved preferences if available
-        if (response.preferences) {
-          const prefs = response.preferences;
-          if (prefs.priceRange) setPriceRange(prefs.priceRange);
-          if (prefs.selectedAmenities)
-            setSelectedAmenities(prefs.selectedAmenities);
-          if (prefs.travelPurpose) setTravelPurpose(prefs.travelPurpose);
-          if (prefs.preferredLocation)
-            setPreferredLocation(prefs.preferredLocation);
-          if (prefs.selectedRoomTypes)
-            setSelectedRoomTypes(prefs.selectedRoomTypes);
+        // Store user role and load profile data
+        if (response.user) {
+          setUserRole(response.user.role);
+          
+          // Load host profile data
+          if (response.user.role === "host") {
+            setHostName(response.user.name || "");
+            setHostEmail(response.user.email || "");
+            setHostBio(response.bio || "");
+          }
         }
 
-        // Load preference text description if available
-        if (response.travel_reason) {
+        // Load saved preferences if available (for guests)
+        if (response.user?.role === "guest" && response.preferences) {
+          const prefs = response.preferences;
+          if (prefs.priceRange && Array.isArray(prefs.priceRange) && prefs.priceRange.length >= 2) {
+            setPriceRange(prefs.priceRange);
+          }
+          if (prefs.selectedAmenities && Array.isArray(prefs.selectedAmenities)) {
+            setSelectedAmenities(prefs.selectedAmenities);
+          }
+          if (prefs.travelPurpose && typeof prefs.travelPurpose === "string") {
+            setTravelPurpose(prefs.travelPurpose);
+          }
+          if (prefs.preferredLocation && typeof prefs.preferredLocation === "string") {
+            setPreferredLocation(prefs.preferredLocation);
+          }
+          if (prefs.selectedRoomTypes && Array.isArray(prefs.selectedRoomTypes)) {
+            setSelectedRoomTypes(prefs.selectedRoomTypes);
+          }
+        }
+
+        // Load preference text description if available (for guests)
+        if (response.user?.role === "guest" && response.travel_reason) {
           setPreferenceText(response.travel_reason);
         }
       } catch (err) {
         toast.error("Please log in to access preferences");
-        window.location.href = "http://localhost:8000/accounts/login/";
+        onNavigate("login");
         return;
       }
       setIsCheckingAuth(false);
     };
     checkAuth();
-  }, []);
+  }, [onNavigate]);
 
   const amenitiesList = [
     "Free WiFi",
@@ -105,32 +133,126 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
   };
 
   const handleSavePreferences = async () => {
+    // Validate user is a guest
+    if (userRole !== "guest") {
+      toast.error("Preferences can only be saved for guest accounts");
+      return;
+    }
+
+    // Validate required fields
+    if (!priceRange || !Array.isArray(priceRange) || priceRange.length < 2) {
+      toast.error("Please set a valid price range");
+      return;
+    }
+
+    if (!travelPurpose || travelPurpose.trim() === "") {
+      toast.error("Please select a travel purpose");
+      return;
+    }
+
+    if (!preferredLocation || preferredLocation.trim() === "") {
+      toast.error("Please select a preferred location");
+      return;
+    }
+
+    setIsSaving(true);
+
     try {
+      // Ensure all data is properly formatted
       const preferences = {
-        priceRange,
-        selectedAmenities,
-        travelPurpose,
-        preferredLocation,
-        selectedRoomTypes,
+        priceRange: Array.isArray(priceRange) ? priceRange : [100, 500],
+        selectedAmenities: Array.isArray(selectedAmenities) ? selectedAmenities : [],
+        travelPurpose: travelPurpose || "leisure",
+        preferredLocation: preferredLocation || "city-center",
+        selectedRoomTypes: Array.isArray(selectedRoomTypes) ? selectedRoomTypes : [],
       };
 
       const response = await savePreferences(preferences);
 
-      toast.success(
-        "Preferences saved successfully! AI recommendations will be updated."
-      );
+      if (response && response.success) {
+        toast.success(
+          "Preferences saved successfully! AI recommendations will be updated."
+        );
 
-      // Update preference text if returned from backend
-      if (response && response.text) {
-        setPreferenceText(response.text);
+        // Update preference text if returned from backend
+        if (response.text) {
+          setPreferenceText(response.text);
+        }
+
+        setTimeout(() => {
+          onNavigate("ai-recommendations");
+        }, 1500);
+      } else {
+        throw new Error("Unexpected response from server");
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || "Failed to save preferences. Please try again.";
+      toast.error(errorMessage);
+      console.error("Error saving preferences:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    // Validate user is a host
+    if (userRole !== "host") {
+      toast.error("Profile editing is only available for host accounts");
+      return;
+    }
+
+    // Validate required fields
+    if (!hostName || hostName.trim() === "") {
+      toast.error("Name cannot be empty");
+      return;
+    }
+
+    if (!hostEmail || hostEmail.trim() === "") {
+      toast.error("Email cannot be empty");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(hostEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const profileData: { name?: string; email?: string; bio?: string } = {
+        name: hostName.trim(),
+        email: hostEmail.trim(),
+      };
+
+      if (hostBio !== undefined) {
+        profileData.bio = hostBio.trim();
       }
 
-      setTimeout(() => {
-        onNavigate("ai-recommendations");
-      }, 1500);
-    } catch (error) {
-      toast.error("Failed to save preferences. Please try again.");
-      console.error(error);
+      const response = await updateProfile(profileData);
+
+      if (response && response.success) {
+        toast.success("Profile updated successfully!");
+        
+        // Update local state with response data
+        if (response.user) {
+          setHostName(response.user.name);
+          setHostEmail(response.user.email);
+        }
+        if (response.bio !== undefined) {
+          setHostBio(response.bio);
+        }
+      } else {
+        throw new Error("Unexpected response from server");
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || "Failed to update profile. Please try again.";
+      toast.error(errorMessage);
+      console.error("Error updating profile:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -138,7 +260,7 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
     try {
       await logout();
       toast.success("Logged out. Redirecting to login...");
-      window.location.href = "http://localhost:8000/accounts/login/";
+      onNavigate("login");
     } catch (err: any) {
       toast.error(err?.message || "Logout failed");
     }
@@ -163,9 +285,13 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
           <div className="flex items-center gap-3">
             <Settings className="w-12 h-12" />
             <div>
-              <h1 className="text-5xl mb-2">Your Preferences</h1>
+              <h1 className="text-5xl mb-2">
+                {userRole === "host" ? "Your Profile" : "Your Preferences"}
+              </h1>
               <p className="text-xl text-white/90">
-                Customize your experience to get better AI recommendations
+                {userRole === "host"
+                  ? "Manage your account settings and profile information"
+                  : "Customize your experience to get better AI recommendations"}
               </p>
             </div>
           </div>
@@ -173,36 +299,38 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* AI Info Banner */}
-        <Card className="p-6 mb-8 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg text-gray-900 mb-2">
-                Personalize Your Experience
-              </h3>
-              <p className="text-gray-700">
-                The more we know about your preferences, the better our AI can
-                recommend hotels that match your style. Your preferences are
-                stored locally and used only to improve your recommendations.
-              </p>
-            </div>
-          </div>
-        </Card>
+        {userRole === "guest" ? (
+          <>
+            {/* AI Info Banner */}
+            <Card className="p-6 mb-8 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg text-gray-900 mb-2">
+                    Personalize Your Experience
+                  </h3>
+                  <p className="text-gray-700">
+                    The more we know about your preferences, the better our AI can
+                    recommend hotels that match your style. Your preferences are
+                    stored locally and used only to improve your recommendations.
+                  </p>
+                </div>
+              </div>
+            </Card>
 
-        {/* Current Preference Summary */}
-        {preferenceText && (
-          <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Your Preference Summary
-            </h3>
-            <p className="text-gray-700">{preferenceText}</p>
-          </Card>
-        )}
+            {/* Current Preference Summary */}
+            {preferenceText && (
+              <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Your Preference Summary
+                </h3>
+                <p className="text-gray-700">{preferenceText}</p>
+              </Card>
+            )}
 
-        <div className="space-y-8">
+            <div className="space-y-8">
           {/* Price Range */}
           <Card className="p-6">
             <h2 className="text-2xl text-gray-900 mb-4">Budget</h2>
@@ -360,54 +488,160 @@ export function PreferencesPage({ onNavigate }: PreferencesPageProps) {
             </div>
           </Card>
 
-          {/* Save Button */}
-          <div className="flex gap-4">
-            <Button
-              onClick={handleSavePreferences}
-              size="lg"
-              className="flex-1"
-            >
-              <Save className="w-5 h-5 mr-2" />
-              Save Preferences
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => onNavigate("home")}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={handleLogout}
-              className="flex-1 text-red-600 hover:text-red-700"
-            >
-              <LogOut className="w-5 h-5 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </div>
+              {/* Save Button */}
+              <div className="flex gap-4">
+                <Button
+                  onClick={handleSavePreferences}
+                  size="lg"
+                  className="flex-1"
+                  disabled={isSaving || userRole !== "guest"}
+                >
+                  <Save className="w-5 h-5 mr-2" />
+                  {isSaving ? "Saving..." : "Save Preferences"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => onNavigate("home")}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={handleLogout}
+                  className="flex-1 text-red-600 hover:text-red-700"
+                >
+                  <LogOut className="w-5 h-5 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </div>
 
-        {/* Tips */}
-        <Card className="p-6 mt-8">
-          <h3 className="text-lg text-gray-900 mb-3">
-            💡 Tips for Better Recommendations
-          </h3>
-          <ul className="space-y-2 text-gray-700">
-            <li>
-              • Update your preferences regularly to reflect your changing needs
-            </li>
-            <li>
-              • The more specific you are, the better our AI can match you with
-              hotels
-            </li>
-            <li>• Like hotels you're interested in to help train the AI</li>
-            <li>
-              • Your preferences are only stored in your browser for privacy
-            </li>
-          </ul>
-        </Card>
+            {/* Tips */}
+            <Card className="p-6 mt-8">
+              <h3 className="text-lg text-gray-900 mb-3">
+                💡 Tips for Better Recommendations
+              </h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>
+                  • Update your preferences regularly to reflect your changing needs
+                </li>
+                <li>
+                  • The more specific you are, the better our AI can match you with
+                  hotels
+                </li>
+                <li>• Like hotels you're interested in to help train the AI</li>
+                <li>
+                  • Your preferences are only stored in your browser for privacy
+                </li>
+              </ul>
+            </Card>
+          </>
+        ) : userRole === "host" ? (
+          <>
+            {/* Host Profile Info Banner */}
+            <Card className="p-6 mb-8 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Settings className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg text-gray-900 mb-2">
+                    Manage Your Profile
+                  </h3>
+                  <p className="text-gray-700">
+                    Update your account information and profile details. Changes will be saved immediately.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <div className="space-y-8">
+              {/* Name */}
+              <Card className="p-6">
+                <h2 className="text-2xl text-gray-900 mb-4">Name</h2>
+                <div>
+                  <Label htmlFor="host-name" className="mb-3 block">
+                    Your full name
+                  </Label>
+                  <Input
+                    id="host-name"
+                    type="text"
+                    value={hostName}
+                    onChange={(e) => setHostName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="w-full"
+                  />
+                </div>
+              </Card>
+
+              {/* Email */}
+              <Card className="p-6">
+                <h2 className="text-2xl text-gray-900 mb-4">Email</h2>
+                <div>
+                  <Label htmlFor="host-email" className="mb-3 block">
+                    Email address
+                  </Label>
+                  <Input
+                    id="host-email"
+                    type="email"
+                    value={hostEmail}
+                    onChange={(e) => setHostEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full"
+                  />
+                </div>
+              </Card>
+
+              {/* Bio */}
+              <Card className="p-6">
+                <h2 className="text-2xl text-gray-900 mb-4">Bio</h2>
+                <div>
+                  <Label htmlFor="host-bio" className="mb-3 block">
+                    Tell us about yourself
+                  </Label>
+                  <Textarea
+                    id="host-bio"
+                    value={hostBio}
+                    onChange={(e) => setHostBio(e.target.value)}
+                    placeholder="Write a brief description about yourself..."
+                    className="w-full min-h-[120px]"
+                  />
+                </div>
+              </Card>
+
+              {/* Save Button */}
+              <div className="flex gap-4">
+                <Button
+                  onClick={handleSaveProfile}
+                  size="lg"
+                  className="flex-1"
+                  disabled={isSaving || userRole !== "host"}
+                >
+                  <Save className="w-5 h-5 mr-2" />
+                  {isSaving ? "Saving..." : "Save Profile"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => onNavigate("home")}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={handleLogout}
+                  className="flex-1 text-red-600 hover:text-red-700"
+                >
+                  <LogOut className="w-5 h-5 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );

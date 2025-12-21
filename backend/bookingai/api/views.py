@@ -403,3 +403,306 @@ def property_detail(request, property_id: int):
     }
     
     return JsonResponse(property_data, status=200)
+
+
+# ==========================================
+# Host Property & Room Management (CRUD)
+# ==========================================
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def host_properties(request):
+    """List all properties for the authenticated host, or create a new property."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Not authenticated"}, status=401)
+    
+    if not hasattr(request.user, "host_profile"):
+        return JsonResponse({"error": "Only hosts can manage properties"}, status=403)
+    
+    host_profile = request.user.host_profile
+    
+    if request.method == "GET":
+        # List all properties for this host
+        properties = m.Property.objects.filter(host=host_profile).prefetch_related('rooms')
+        properties_list = []
+        
+        for prop in properties:
+            # Parse amenities
+            amenities_list = []
+            if prop.amenities:
+                try:
+                    amenities_list = json.loads(prop.amenities)
+                except:
+                    amenities_list = [a.strip() for a in prop.amenities.split(',') if a.strip()]
+            
+            # Get rooms
+            rooms = []
+            for room in prop.rooms.all():
+                rooms.append({
+                    "id": room.room_id,
+                    "title": room.title,
+                    "price_per_night": float(room.price_per_night),
+                    "availability_status": room.availability_status,
+                    "photos_url": room.photos_url or ""
+                })
+            
+            properties_list.append({
+                "id": prop.property_id,
+                "name": prop.name,
+                "location": prop.location,
+                "description": prop.description,
+                "amenities": amenities_list,
+                "price_per_night": float(prop.price_per_night),
+                "ai_verified_score": prop.ai_verified_score,
+                "rooms": rooms
+            })
+        
+        return JsonResponse({"properties": properties_list}, status=200)
+    
+    elif request.method == "POST":
+        # Create new property
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        
+        name = body.get("name", "").strip()
+        location = body.get("location", "").strip()
+        description = body.get("description", "").strip()
+        price_per_night = body.get("price_per_night", 0.0)
+        amenities = body.get("amenities", [])
+        
+        if not name or not location or not description:
+            return JsonResponse({"error": "Name, location, and description are required"}, status=400)
+        
+        # Convert amenities list to JSON string
+        amenities_str = json.dumps(amenities) if isinstance(amenities, list) else amenities
+        
+        property_obj = m.Property.objects.create(
+            host=host_profile,
+            name=name,
+            location=location,
+            description=description,
+            price_per_night=price_per_night,
+            amenities=amenities_str,
+            ai_verified_score="No evaluation yet"
+        )
+        
+        return JsonResponse({
+            "success": True,
+            "property": {
+                "id": property_obj.property_id,
+                "name": property_obj.name,
+                "location": property_obj.location,
+                "description": property_obj.description,
+                "amenities": amenities,
+                "price_per_night": float(property_obj.price_per_night),
+                "ai_verified_score": property_obj.ai_verified_score
+            }
+        }, status=201)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "PUT", "DELETE"])
+def host_property_detail(request, property_id):
+    """Get, update, or delete a specific property."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Not authenticated"}, status=401)
+    
+    if not hasattr(request.user, "host_profile"):
+        return JsonResponse({"error": "Only hosts can manage properties"}, status=403)
+    
+    host_profile = request.user.host_profile
+    
+    try:
+        property_obj = m.Property.objects.get(property_id=property_id, host=host_profile)
+    except m.Property.DoesNotExist:
+        return JsonResponse({"error": "Property not found"}, status=404)
+    
+    if request.method == "GET":
+        # Parse amenities
+        amenities_list = []
+        if property_obj.amenities:
+            try:
+                amenities_list = json.loads(property_obj.amenities)
+            except:
+                amenities_list = [a.strip() for a in property_obj.amenities.split(',') if a.strip()]
+        
+        # Get rooms
+        rooms = []
+        for room in property_obj.rooms.all():
+            rooms.append({
+                "id": room.room_id,
+                "title": room.title,
+                "price_per_night": float(room.price_per_night),
+                "availability_status": room.availability_status,
+                "photos_url": room.photos_url or ""
+            })
+        
+        return JsonResponse({
+            "id": property_obj.property_id,
+            "name": property_obj.name,
+            "location": property_obj.location,
+            "description": property_obj.description,
+            "amenities": amenities_list,
+            "price_per_night": float(property_obj.price_per_night),
+            "ai_verified_score": property_obj.ai_verified_score,
+            "rooms": rooms
+        }, status=200)
+    
+    elif request.method == "PUT":
+        # Update property
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        
+        if "name" in body:
+            property_obj.name = body.get("name", "").strip()
+        if "location" in body:
+            property_obj.location = body.get("location", "").strip()
+        if "description" in body:
+            property_obj.description = body.get("description", "").strip()
+        if "price_per_night" in body:
+            property_obj.price_per_night = body.get("price_per_night", 0.0)
+        if "amenities" in body:
+            amenities = body.get("amenities", [])
+            property_obj.amenities = json.dumps(amenities) if isinstance(amenities, list) else amenities
+        
+        property_obj.save()
+        
+        # Parse amenities for response
+        amenities_list = []
+        if property_obj.amenities:
+            try:
+                amenities_list = json.loads(property_obj.amenities)
+            except:
+                amenities_list = [a.strip() for a in property_obj.amenities.split(',') if a.strip()]
+        
+        return JsonResponse({
+            "success": True,
+            "property": {
+                "id": property_obj.property_id,
+                "name": property_obj.name,
+                "location": property_obj.location,
+                "description": property_obj.description,
+                "amenities": amenities_list,
+                "price_per_night": float(property_obj.price_per_night),
+                "ai_verified_score": property_obj.ai_verified_score
+            }
+        }, status=200)
+    
+    elif request.method == "DELETE":
+        property_obj.delete()
+        return JsonResponse({"success": True, "message": "Property deleted"}, status=200)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def host_room_create(request, property_id):
+    """Create a new room for a property."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Not authenticated"}, status=401)
+    
+    if not hasattr(request.user, "host_profile"):
+        return JsonResponse({"error": "Only hosts can manage rooms"}, status=403)
+    
+    host_profile = request.user.host_profile
+    
+    try:
+        property_obj = m.Property.objects.get(property_id=property_id, host=host_profile)
+    except m.Property.DoesNotExist:
+        return JsonResponse({"error": "Property not found"}, status=404)
+    
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    
+    title = body.get("title", "").strip()
+    price_per_night = body.get("price_per_night", 0.0)
+    availability_status = body.get("availability_status", "available")
+    photos_url = body.get("photos_url", "")
+    
+    if not title:
+        return JsonResponse({"error": "Room title is required"}, status=400)
+    
+    if availability_status not in ["available", "booked", "unavailable"]:
+        availability_status = "available"
+    
+    room = m.Room.objects.create(
+        property=property_obj,
+        title=title,
+        price_per_night=price_per_night,
+        availability_status=availability_status,
+        photos_url=photos_url
+    )
+    
+    return JsonResponse({
+        "success": True,
+        "room": {
+            "id": room.room_id,
+            "title": room.title,
+            "price_per_night": float(room.price_per_night),
+            "availability_status": room.availability_status,
+            "photos_url": room.photos_url or ""
+        }
+    }, status=201)
+
+
+@csrf_exempt
+@require_http_methods(["PUT", "DELETE"])
+def host_room_detail(request, property_id, room_id):
+    """Update or delete a specific room."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Not authenticated"}, status=401)
+    
+    if not hasattr(request.user, "host_profile"):
+        return JsonResponse({"error": "Only hosts can manage rooms"}, status=403)
+    
+    host_profile = request.user.host_profile
+    
+    try:
+        property_obj = m.Property.objects.get(property_id=property_id, host=host_profile)
+    except m.Property.DoesNotExist:
+        return JsonResponse({"error": "Property not found"}, status=404)
+    
+    try:
+        room = m.Room.objects.get(room_id=room_id, property=property_obj)
+    except m.Room.DoesNotExist:
+        return JsonResponse({"error": "Room not found"}, status=404)
+    
+    if request.method == "PUT":
+        # Update room
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        
+        if "title" in body:
+            room.title = body.get("title", "").strip()
+        if "price_per_night" in body:
+            room.price_per_night = body.get("price_per_night", 0.0)
+        if "availability_status" in body:
+            status = body.get("availability_status", "available")
+            if status in ["available", "booked", "unavailable"]:
+                room.availability_status = status
+        if "photos_url" in body:
+            room.photos_url = body.get("photos_url", "")
+        
+        room.save()
+        
+        return JsonResponse({
+            "success": True,
+            "room": {
+                "id": room.room_id,
+                "title": room.title,
+                "price_per_night": float(room.price_per_night),
+                "availability_status": room.availability_status,
+                "photos_url": room.photos_url or ""
+            }
+        }, status=200)
+    
+    elif request.method == "DELETE":
+        room.delete()
+        return JsonResponse({"success": True, "message": "Room deleted"}, status=200)

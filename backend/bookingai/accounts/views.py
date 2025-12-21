@@ -98,7 +98,7 @@ def register_view(request):
                     except Exception:
                         pass
                     # Redirect to frontend main page
-                    return redirect('http://localhost:3000/')
+                    return redirect('http://localhost:5173/')
 
                 context = {'success': 'User registered successfully. Please sign in.'}
                 return render(request, 'accounts/register.html', context)
@@ -121,12 +121,12 @@ def login_view(request):
             except Exception:
                 pass
             # Redirect to frontend main page
-            return redirect('http://localhost:3000/')
+            return redirect('http://localhost:5173/')
         else:
             context = {'error': 'Invalid email or password.'}
             return render(request, 'accounts/login.html', context)
     if request.user.is_authenticated:
-        return redirect('http://localhost:3000')
+        return redirect('http://localhost:5173')
     return render(request, 'accounts/login.html')
 
 def logout_view(request):
@@ -236,6 +236,7 @@ def api_me(request):
         # Get profile preferences
         preferences = None
         travel_reason = None
+        bio = None
         
         if hasattr(request.user, "guest_profile"):
             profile = request.user.guest_profile
@@ -243,6 +244,7 @@ def api_me(request):
             travel_reason = profile.travel_reason
         elif hasattr(request.user, "host_profile"):
             profile = request.user.host_profile
+            bio = profile.bio if hasattr(profile, "bio") else None
             if hasattr(profile, "preferences"):
                 preferences = profile.preferences
             if hasattr(profile, "travel_reason"):
@@ -256,7 +258,7 @@ def api_me(request):
             except (json.JSONDecodeError, TypeError):
                 parsed_preferences = None
         
-        return JsonResponse({
+        response_data = {
             "authenticated": True,
             "user": {
                 "id": request.user.user_id,
@@ -266,7 +268,13 @@ def api_me(request):
             },
             "preferences": parsed_preferences,
             "travel_reason": travel_reason
-        }, status=200)
+        }
+        
+        # Add bio for host users
+        if bio is not None:
+            response_data["bio"] = bio
+        
+        return JsonResponse(response_data, status=200)
     else:
         return JsonResponse({"authenticated": False}, status=200)
 
@@ -334,17 +342,85 @@ def api_update_preferences(request):
     elif hasattr(request.user, "host_profile"):
         profile = request.user.host_profile
 
-    if profile and hasattr(profile, "preferences"):
-        # Store raw preferences as JSON string
-        raw_prefs = json.dumps(preferences_data)
-        profile.preferences = raw_prefs
-        
-        # Generate and store text preference description
-        preference_text = generate_preference_text(preferences_data)
-        if hasattr(profile, "travel_reason"):
-            profile.travel_reason = preference_text
-        
-        profile.save()
-        return JsonResponse({"success": True, "message": "Preferences saved", "text": preference_text})
+    if not profile:
+        return JsonResponse({"error": "No profile found. Please ensure your account is properly set up."}, status=400)
+    
+    if not hasattr(profile, "preferences"):
+        return JsonResponse({"error": "Preferences are only available for guest accounts."}, status=400)
+
+    # Store raw preferences as JSON string
+    raw_prefs = json.dumps(preferences_data)
+    profile.preferences = raw_prefs
+    
+    # Generate and store text preference description
+    preference_text = generate_preference_text(preferences_data)
+    if hasattr(profile, "travel_reason"):
+        profile.travel_reason = preference_text
+    
+    profile.save()
+    return JsonResponse({"success": True, "message": "Preferences saved", "text": preference_text})
+
+
+@csrf_exempt
+@require_POST
+def api_update_profile(request):
+    """API endpoint to update current user's profile (name, email) and host profile (bio)."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Not authenticated"}, status=401)
+
+    if request.content_type and "json" in request.content_type:
+        try:
+            body = json.loads(request.body or "{}")
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
     else:
-        return JsonResponse({"error": "No profile found"}, status=400)
+        return JsonResponse({"error": "Invalid content type"}, status=400)
+
+    user = request.user
+    updated = False
+
+    # Update user fields (name, email)
+    if "name" in body:
+        new_name = body.get("name", "").strip()
+        if new_name:
+            user.name = new_name
+            updated = True
+        else:
+            return JsonResponse({"error": "Name cannot be empty"}, status=400)
+
+    if "email" in body:
+        new_email = body.get("email", "").strip()
+        if new_email:
+            # Check if email is already taken by another user
+            if User.objects.filter(email=new_email).exclude(user_id=user.user_id).exists():
+                return JsonResponse({"error": "Email already in use"}, status=400)
+            user.email = new_email
+            updated = True
+        else:
+            return JsonResponse({"error": "Email cannot be empty"}, status=400)
+
+    if updated:
+        user.save()
+
+    # Update host profile if user is a host
+    if user.role == "host" and hasattr(user, "host_profile"):
+        host_profile = user.host_profile
+        if "bio" in body:
+            host_profile.bio = body.get("bio", "").strip()
+            host_profile.save()
+            updated = True
+
+    if not updated:
+        return JsonResponse({"error": "No fields to update"}, status=400)
+
+    return JsonResponse({
+        "success": True,
+        "message": "Profile updated successfully",
+        "user": {
+            "id": user.user_id,
+            "email": user.email,
+            "name": user.name,
+            "role": user.role,
+        },
+        "bio": user.host_profile.bio if user.role == "host" and hasattr(user, "host_profile") else None
+    })
