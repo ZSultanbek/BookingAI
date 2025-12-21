@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Sparkles, User, Bot } from 'lucide-react';
+import { useLanguage } from "../contexts/LanguageContext";
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
@@ -19,11 +20,13 @@ interface Message {
 }
 
 export function AIChatPage({ onNavigate }: AIChatPageProps) {
+  const { t } = useLanguage();
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your AI travel assistant. I can help you find the perfect hotel, plan your trip, or answer any questions about destinations. How can I assist you today?",
+      content: t.aiChat.initialMessage,
       timestamp: new Date()
     }
   ]);
@@ -153,10 +156,10 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
               <MessageSquare className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl">AI Travel Assistant</h1>
+              <h1 className="text-2xl">{t.aiChat.title}</h1>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-sm text-white/90">Online and ready to help</span>
+                <span className="text-sm text-white/90">{t.aiChat.onlineStatus}</span>
               </div>
             </div>
           </div>
@@ -226,7 +229,7 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
           {/* Suggested Questions */}
           {messages.length <= 2 && (
             <div className="mt-8">
-              <p className="text-sm text-gray-600 mb-3">Suggested questions:</p>
+              <p className="text-sm text-gray-600 mb-3">{t.aiChat.suggestedQuestions}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {suggestedQuestions.map((question, index) => (
                   <Button
@@ -249,8 +252,8 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
               onClick={() => onNavigate('ai-recommendations')}
             >
               <Sparkles className="w-6 h-6 text-blue-600 mb-2" />
-              <h3 className="text-sm text-gray-900 mb-1">View AI Recommendations</h3>
-              <p className="text-xs text-gray-600">See personalized hotel picks</p>
+              <h3 className="text-sm text-gray-900 mb-1">{t.aiChat.viewAIRecommendations}</h3>
+              <p className="text-xs text-gray-600">{t.aiChat.viewPersonalizedPicks}</p>
             </Card>
             
             <Card
@@ -258,8 +261,8 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
               onClick={() => onNavigate('destinations')}
             >
               <MessageSquare className="w-6 h-6 text-purple-600 mb-2" />
-              <h3 className="text-sm text-gray-900 mb-1">Explore Destinations</h3>
-              <p className="text-xs text-gray-600">Browse popular places</p>
+              <h3 className="text-sm text-gray-900 mb-1">{t.aiChat.exploreDestinations}</h3>
+              <p className="text-xs text-gray-600">{t.aiChat.browsePopularPlaces}</p>
             </Card>
             
             <Card
@@ -267,8 +270,8 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
               onClick={() => onNavigate('preferences')}
             >
               <User className="w-6 h-6 text-pink-600 mb-2" />
-              <h3 className="text-sm text-gray-900 mb-1">Update Preferences</h3>
-              <p className="text-xs text-gray-600">Improve recommendations</p>
+              <h3 className="text-sm text-gray-900 mb-1">{t.aiChat.updatePreferences}</h3>
+              <p className="text-xs text-gray-600">{t.aiChat.improveRecommendations}</p>
             </Card>
           </div>
         </div>
@@ -279,7 +282,7 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex gap-3">
             <Input
-              placeholder="Ask me anything about hotels or travel..."
+              placeholder={t.aiChat.inputPlaceholder}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -289,9 +292,7 @@ export function AIChatPage({ onNavigate }: AIChatPageProps) {
               <Send className="w-5 h-5" />
             </Button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Powered by Gemini AI
-          </p>
+          <p className="text-xs text-gray-500 mt-2">{t.aiChat.poweredBy}</p>
         </div>
       </div>
     </div>

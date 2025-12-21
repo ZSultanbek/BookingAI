@@ -1,18 +1,20 @@
-import React, { useState } from "react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Card } from "../components/ui/card";
-import { Label } from "../components/ui/label";
-import { login } from "../lib/api";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Card } from '../components/ui/card';
+import { Label } from '../components/ui/label';
+import { login } from '../lib/api';
+import { toast } from 'sonner';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LoginPageProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
 export function LoginPage({ onNavigate }: LoginPageProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { t } = useLanguage();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,21 +53,14 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
             AI
           </div>
           <div>
-            <h1 className="m-0 text-xl font-bold text-[#0f172a]">
-              Welcome back
-            </h1>
-            <p className="my-1 mb-5 text-[#6b7280] text-[0.98rem]">
-              Sign in to continue your booking journey.
-            </p>
+            <h1 className="text-xl font-bold text-gray-900 m-0">{t.auth.welcomeBack}</h1>
+            <p className="text-[0.98rem] text-gray-500 mt-1 mb-0">Sign in to continue your booking journey.</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <Label
-            htmlFor="email"
-            className="block my-3.5 mb-1.5 font-semibold text-[0.95rem]"
-          >
-            Email
+        <form onSubmit={handleSubmit} className="mt-5">
+          <Label htmlFor="email" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
+            {t.auth.email}
           </Label>
           <Input
             id="email"
@@ -78,11 +73,8 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
             className="w-full p-3 rounded-xl border border-[#e5e7eb] bg-[#f3f3f5] text-base transition-all duration-150 focus:outline-none focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[rgba(165,180,252,0.35)]"
           />
 
-          <Label
-            htmlFor="password"
-            className="block my-3.5 mb-1.5 font-semibold text-[0.95rem]"
-          >
-            Password
+          <Label htmlFor="password" className="block mb-1.5 mt-3.5 font-semibold text-[0.95rem]">
+            {t.auth.password}
           </Label>
           <Input
             id="password"
@@ -100,25 +92,18 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
             disabled={loading}
             className="mt-[18px] w-full py-[13px] px-3.5 bg-[#030213] text-white border-none rounded-xl font-bold text-base cursor-pointer transition-all duration-150 hover:bg-[#11112a] active:translate-y-[1px] disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? t.common.loading : t.auth.signIn}
           </Button>
         </form>
 
-        {error && <p className="mt-3 text-[#b91c1c] font-semibold">{error}</p>}
-
-        <div className="mt-[18px] text-center text-[#6b7280] text-[0.95rem]">
-          <span>
-            Need an account?{" "}
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onNavigate("register");
-              }}
-              className="text-[#030213] no-underline font-bold hover:underline"
+        <div className="mt-4.5 text-center text-gray-500 text-[0.95rem]">
+          <span>{t.auth.needAccount}{' '}
+            <button
+              onClick={() => onNavigate('register')}
+              className="text-[#030213] font-bold no-underline hover:underline cursor-pointer bg-transparent border-0 p-0"
             >
-              Create one
-            </a>
+              {t.auth.createOne}
+            </button>
           </span>
         </div>
       </Card>

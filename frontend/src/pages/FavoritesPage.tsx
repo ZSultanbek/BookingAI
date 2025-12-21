@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Grid, List, ArrowUpDown } from 'lucide-react';
+import { useLanguage } from "../contexts/LanguageContext";
 import { Button } from '../components/ui/button';
 import { HotelCard } from '../components/HotelCard';
 import { getProperties } from '../lib/api';
@@ -17,6 +18,7 @@ export function FavoritesPage({ onNavigate, favorites, onToggleFavorite }: Favor
   const [sortBy, setSortBy] = useState('added');
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     async function fetchHotels() {
@@ -56,10 +58,10 @@ export function FavoritesPage({ onNavigate, favorites, onToggleFavorite }: Favor
           <div className="flex items-center gap-3">
             <Heart className="w-12 h-12" />
             <div>
-              <h1 className="text-5xl mb-2">Your Favorites</h1>
-              <p className="text-xl text-white/90">
-                {favorites.length} {favorites.length === 1 ? 'hotel' : 'hotels'} saved for later
-              </p>
+                <h1 className="text-5xl mb-2">{t.favorites.title}</h1>
+                <p className="text-xl text-white/90">
+                  {t.favorites.savedCount.replace('{count}', String(favorites.length))}
+                </p>
             </div>
           </div>
         </div>
@@ -68,24 +70,21 @@ export function FavoritesPage({ onNavigate, favorites, onToggleFavorite }: Favor
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {loading ? (
           <div className="text-center py-12">
-            <p className="text-gray-600">Loading favorites...</p>
+            <p className="text-gray-600">{t.favorites.loading}</p>
           </div>
         ) : favoriteHotels.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-24 h-24 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Heart className="w-12 h-12 text-pink-600" />
             </div>
-            <h2 className="text-3xl text-gray-900 mb-3">No favorites yet</h2>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              Start exploring and save hotels you love by clicking the heart icon. 
-              Your favorites will help our AI better understand your preferences.
-            </p>
+            <h2 className="text-3xl text-gray-900 mb-3">{t.favorites.noFavoritesTitle}</h2>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">{t.favorites.noFavoritesDesc}</p>
             <div className="flex gap-4 justify-center">
               <Button onClick={() => onNavigate('search')}>
-                Browse Hotels
+                {t.favorites.browseHotels}
               </Button>
               <Button variant="outline" onClick={() => onNavigate('ai-recommendations')}>
-                View AI Recommendations
+                {t.favorites.viewAIRecommendations}
               </Button>
             </div>
           </div>
@@ -112,18 +111,18 @@ export function FavoritesPage({ onNavigate, favorites, onToggleFavorite }: Favor
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600 hidden sm:inline">Sort by:</span>
+                <span className="text-sm text-gray-600 hidden sm:inline">{t.favorites.sortByLabel}</span>
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-40">
                     <ArrowUpDown className="w-4 h-4 mr-2" />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="added">Recently Added</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
-                    <SelectItem value="rating">Highest Rated</SelectItem>
-                    <SelectItem value="name">Name (A-Z)</SelectItem>
+                    <SelectItem value="added">{t.search.sorts.recentlyAdded}</SelectItem>
+                    <SelectItem value="price-low">{t.search.sorts.priceLow}</SelectItem>
+                    <SelectItem value="price-high">{t.search.sorts.priceHigh}</SelectItem>
+                    <SelectItem value="rating">{t.search.sorts.highestRated}</SelectItem>
+                    <SelectItem value="name">{t.search.sorts.name}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -144,7 +143,7 @@ export function FavoritesPage({ onNavigate, favorites, onToggleFavorite }: Favor
             {favoriteHotels.length >= 2 && (
               <div className="mt-12 text-center">
                 <Button onClick={() => onNavigate('compare-hotels')} size="lg">
-                  Compare Your Favorites
+                  {t.favorites.compareFavorites}
                 </Button>
               </div>
             )}

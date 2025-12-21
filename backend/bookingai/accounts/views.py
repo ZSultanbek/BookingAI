@@ -330,12 +330,14 @@ def api_update_preferences(request):
                 preferences_data = json.loads(preferences_input)
             elif isinstance(preferences_input, dict):
                 preferences_data = preferences_input
+            else:
+                return JsonResponse({"error": "Invalid preferences format"}, status=400)
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
     else:
         return JsonResponse({"error": "Invalid content type"}, status=400)
 
-    # Store on GuestProfile if present; otherwise HostProfile
+    # Determine profile
     profile = None
     if hasattr(request.user, "guest_profile"):
         profile = request.user.guest_profile
@@ -343,22 +345,32 @@ def api_update_preferences(request):
         profile = request.user.host_profile
 
     if not profile:
-        return JsonResponse({"error": "No profile found. Please ensure your account is properly set up."}, status=400)
-    
+        return JsonResponse(
+            {"error": "No profile found. Please ensure your account is properly set up."},
+            status=400
+        )
+
     if not hasattr(profile, "preferences"):
-        return JsonResponse({"error": "Preferences are only available for guest accounts."}, status=400)
+        return JsonResponse(
+            {"error": "Preferences are only available for guest accounts."},
+            status=400
+        )
 
     # Store raw preferences as JSON string
     raw_prefs = json.dumps(preferences_data)
     profile.preferences = raw_prefs
-    
-    # Generate and store text preference description
+
     preference_text = generate_preference_text(preferences_data)
     if hasattr(profile, "travel_reason"):
         profile.travel_reason = preference_text
-    
+
     profile.save()
-    return JsonResponse({"success": True, "message": "Preferences saved", "text": preference_text})
+
+    return JsonResponse({
+        "success": True,
+        "message": "Preferences saved",
+        "text": preference_text
+    })
 
 
 @csrf_exempt

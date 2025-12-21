@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { SlidersHorizontal, Sparkles, Grid, List, Search } from 'lucide-react';
+import { useLanguage } from "../contexts/LanguageContext";
 import { Button } from '../components/ui/button';
 import { HotelCard } from '../components/HotelCard';
 import { getProperties } from '../lib/api';
@@ -20,6 +21,7 @@ interface SearchResultsPageProps {
 }
 
 export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleFavorite }: SearchResultsPageProps) {
+  const { t } = useLanguage();
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('ai-score');
@@ -124,7 +126,7 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
   const FilterPanel = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg text-gray-900 mb-4">Price Range</h3>
+        <h3 className="text-lg text-gray-900 mb-4">{t.search.priceRange}</h3>
         <Slider
           value={priceRange}
           onValueChange={setPriceRange}
@@ -140,7 +142,7 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
       </div>
 
       <div>
-        <h3 className="text-lg text-gray-900 mb-4">Amenities</h3>
+        <h3 className="text-lg text-gray-900 mb-4">{t.search.amenities}</h3>
         <div className="space-y-3">
           {amenitiesList.map((amenity) => (
             <div key={amenity} className="flex items-center gap-2">
@@ -165,7 +167,7 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
         }}
         className="w-full"
       >
-        Clear Filters
+        {t.search.clearFilters}
       </Button>
     </div>
   );
@@ -178,10 +180,10 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl text-gray-900">
-                {searchData?.destination || 'All Hotels'}
+                {searchData?.destination || t.search.allHotels}
               </h1>
               <p className="text-gray-600 mt-1">
-                {filteredHotels.length} properties found
+                {t.search.propertiesFound.replace('{count}', String(filteredHotels.length))}
               </p>
             </div>
             
@@ -211,12 +213,12 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
                   <SelectItem value="ai-score">
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4" />
-                      AI Recommended
+                      {t.search.sorts.aiRecommended}
                     </div>
                   </SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
+                  <SelectItem value="price-low">{t.search.sorts.priceLow}</SelectItem>
+                  <SelectItem value="price-high">{t.search.sorts.priceHigh}</SelectItem>
+                  <SelectItem value="rating">{t.search.sorts.highestRated}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -259,9 +261,9 @@ export function SearchResultsPage({ onNavigate, searchData, favorites, onToggleF
             <aside className="hidden md:block w-72 flex-shrink-0">
               <div className="bg-white rounded-lg p-6 sticky top-24">
                 <div className="flex items-center gap-2 mb-6">
-                  <SlidersHorizontal className="w-5 h-5 text-gray-700" />
-                  <h2 className="text-xl text-gray-900">Filters</h2>
-                </div>
+                    <SlidersHorizontal className="w-5 h-5 text-gray-700" />
+                    <h2 className="text-xl text-gray-900">{t.search.filters}</h2>
+                  </div>
                 <FilterPanel />
               </div>
             </aside>

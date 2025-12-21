@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Home, Search, Heart, Compass, Settings, MessageSquare, Map, Building2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { getCurrentUser } from '../lib/api';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface NavigationProps {
   currentPage: string;
@@ -9,6 +10,7 @@ interface NavigationProps {
 }
 
 export function Navigation({ currentPage, onNavigate }: NavigationProps) {
+  const { t } = useLanguage();
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,11 +29,11 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
   }, [currentPage]); // Re-check when page changes
 
   const navItems = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'search', label: 'Search', icon: Search },
-    { id: 'destinations', label: 'Destinations', icon: Compass },
-    { id: 'favorites', label: 'Favorites', icon: Heart },
-    { id: 'ai-chat', label: 'AI Assistant', icon: MessageSquare },
+    { id: 'home', label: t.nav.home, icon: Home },
+    { id: 'search', label: t.nav.search, icon: Search },
+    { id: 'destinations', label: t.nav.destinations, icon: Compass },
+    { id: 'favorites', label: t.nav.favorites, icon: Heart },
+    { id: 'ai-chat', label: t.nav.aiAssistant, icon: MessageSquare },
   ];
 
   return (
@@ -69,7 +71,7 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
                 className="gap-2"
               >
                 <Building2 className="w-4 h-4" />
-                Manage Properties
+                {t.nav.manageProperties}
               </Button>
             )}
             <Button

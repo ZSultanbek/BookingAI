@@ -37,12 +37,14 @@ import {
   HostProperty,
   HostRoom,
 } from "../lib/api";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface HostPropertiesPageProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
 export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
+  const { t } = useLanguage();
   const [properties, setProperties] = useState<HostProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -311,9 +313,9 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
             <div className="flex items-center gap-3">
               <Building2 className="w-12 h-12" />
               <div>
-                <h1 className="text-3xl sm:text-5xl mb-2">Manage Properties</h1>
+                <h1 className="text-3xl sm:text-5xl mb-2">{t.hostProperties.title}</h1>
                 <p className="text-lg sm:text-xl text-white/90">
-                  Create and manage your hotels and rooms
+                  {t.hostProperties.subtitle}
                 </p>
               </div>
             </div>
@@ -324,7 +326,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                 className="bg-white text-blue-600 hover:bg-gray-100 w-full sm:w-auto"
               >
                 <Plus className="w-5 h-5 mr-2" />
-                Add Property
+                {t.hostProperties.addProperty}
               </Button>
             )}
           </div>
@@ -338,7 +340,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">
-                  {editingProperty ? "Edit Property" : "Create New Property"}
+                  {editingProperty ? t.hostProperties.editProperty : t.hostProperties.createProperty}
                 </h2>
                 <p className="text-gray-600 mt-1">
                   {editingProperty
@@ -358,7 +360,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="property-name">Property Name *</Label>
+                <Label htmlFor="property-name">{t.hostProperties.propertyName} *</Label>
                 <Input
                   id="property-name"
                   value={propertyForm.name}
@@ -370,7 +372,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
               </div>
 
               <div>
-                <Label htmlFor="property-location">Location *</Label>
+                <Label htmlFor="property-location">{t.hostProperties.location} *</Label>
                 <Input
                   id="property-location"
                   value={propertyForm.location}
@@ -382,7 +384,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
               </div>
 
               <div>
-                <Label htmlFor="property-description">Description *</Label>
+                <Label htmlFor="property-description">{t.hostProperties.description} *</Label>
                 <Textarea
                   id="property-description"
                   value={propertyForm.description}
@@ -395,7 +397,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
               </div>
 
               <div>
-                <Label htmlFor="property-price">Price per Night ($) *</Label>
+                <Label htmlFor="property-price">{t.hostProperties.pricePerNight} ($) *</Label>
                 <Input
                   id="property-price"
                   type="number"
@@ -434,11 +436,11 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
 
               <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
                 <Button variant="outline" onClick={handleClosePropertyForm} className="w-full sm:w-auto">
-                  Cancel
+                  {t.common.cancel}
                 </Button>
                 <Button onClick={handleSaveProperty} className="w-full sm:w-auto">
                   <Save className="w-4 h-4 mr-2" />
-                  {editingProperty ? "Update Property" : "Create Property"}
+                  {editingProperty ? t.common.update : t.common.create} {t.hostProperties.propertyName}
                 </Button>
               </div>
             </div>
@@ -453,13 +455,13 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
         ) : properties.length === 0 && !showPropertyForm ? (
           <Card className="p-12 text-center">
             <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl text-gray-900 mb-2">No properties yet</h3>
+            <h3 className="text-xl text-gray-900 mb-2">{t.hostProperties.noProperties}</h3>
             <p className="text-gray-600 mb-6">
               Get started by creating your first property
             </p>
             <Button onClick={() => handleOpenPropertyForm()} size="lg">
               <Plus className="w-5 h-5 mr-2" />
-              Create Your First Property
+              {t.hostProperties.createFirstProperty}
             </Button>
           </Card>
         ) : (
@@ -504,7 +506,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                       className="flex-1 sm:flex-none"
                     >
                       <Edit className="w-4 h-4 mr-1" />
-                      Edit
+                      {t.common.edit}
                     </Button>
                     <Button
                       variant="outline"
@@ -513,7 +515,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                       className="text-red-600 hover:text-red-700 flex-1 sm:flex-none"
                     >
                       <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
+                      {t.common.delete}
                     </Button>
                   </div>
                 </div>
@@ -522,7 +524,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                       <Bed className="w-5 h-5" />
-                      Rooms ({property.rooms.length})
+                      {t.hostProperties.rooms} ({property.rooms.length})
                     </h3>
                     <Button
                       variant="outline"
@@ -533,12 +535,12 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                       {openRoomFormForProperty === property.id ? (
                         <>
                           <ChevronUp className="w-4 h-4 mr-1" />
-                          Cancel
+                          {t.common.cancel}
                         </>
                       ) : (
                         <>
                           <Plus className="w-4 h-4 mr-1" />
-                          Add Room
+                          {t.hostProperties.addRoom}
                         </>
                       )}
                     </Button>
@@ -549,7 +551,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                     <Card id={`room-form-${property.id}`} className="p-4 mb-4 bg-gray-50 border-2 border-blue-200">
                       <div className="flex justify-between items-center mb-4">
                         <h4 className="font-semibold text-gray-900">
-                          {editingRoom ? "Edit Room" : "Create New Room"}
+                          {editingRoom ? t.hostProperties.editRoom : t.hostProperties.createRoom}
                         </h4>
                         <Button
                           variant="ghost"
@@ -563,7 +565,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
 
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor={`room-title-${property.id}`}>Room Title *</Label>
+                          <Label htmlFor={`room-title-${property.id}`}>{t.hostProperties.roomTitle} *</Label>
                           <Input
                             id={`room-title-${property.id}`}
                             value={roomForm.title}
@@ -575,7 +577,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                         </div>
 
                         <div>
-                          <Label htmlFor={`room-price-${property.id}`}>Price per Night ($) *</Label>
+                          <Label htmlFor={`room-price-${property.id}`}>{t.hostProperties.pricePerNight} ($) *</Label>
                           <Input
                             id={`room-price-${property.id}`}
                             type="number"
@@ -592,7 +594,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                         </div>
 
                         <div>
-                          <Label htmlFor={`room-status-${property.id}`}>Availability Status</Label>
+                          <Label htmlFor={`room-status-${property.id}`}>{t.hostProperties.availabilityStatus}</Label>
                           <Select
                             value={roomForm.availability_status}
                             onValueChange={(value: "available" | "booked" | "unavailable") =>
@@ -603,15 +605,15 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="available">Available</SelectItem>
-                              <SelectItem value="booked">Booked</SelectItem>
-                              <SelectItem value="unavailable">Unavailable</SelectItem>
+                              <SelectItem value="available">{t.hostProperties.available}</SelectItem>
+                              <SelectItem value="booked">{t.hostProperties.booked}</SelectItem>
+                              <SelectItem value="unavailable">{t.hostProperties.unavailable}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
 
                         <div>
-                          <Label htmlFor={`room-photos-${property.id}`}>Photo URL</Label>
+                          <Label htmlFor={`room-photos-${property.id}`}>{t.hostProperties.photoUrl}</Label>
                           <Input
                             id={`room-photos-${property.id}`}
                             value={roomForm.photos_url}
@@ -628,14 +630,14 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                             onClick={() => handleCloseRoomForm(property.id)}
                             className="w-full sm:w-auto"
                           >
-                            Cancel
+                            {t.common.cancel}
                           </Button>
                           <Button
                             onClick={() => handleSaveRoom(property.id)}
                             className="w-full sm:w-auto"
                           >
                             <Save className="w-4 h-4 mr-2" />
-                            {editingRoom ? "Update Room" : "Create Room"}
+                            {editingRoom ? t.common.update : t.common.create} {t.hostProperties.rooms.slice(0, -1)}
                           </Button>
                         </div>
                       </div>
@@ -643,7 +645,7 @@ export function HostPropertiesPage({ onNavigate }: HostPropertiesPageProps) {
                   )}
 
                   {property.rooms.length === 0 && openRoomFormForProperty !== property.id ? (
-                    <p className="text-gray-500 text-sm">No rooms yet. Add your first room!</p>
+                    <p className="text-gray-500 text-sm">{t.hostProperties.noRooms}</p>
                   ) : property.rooms.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {property.rooms.map((room) => (
